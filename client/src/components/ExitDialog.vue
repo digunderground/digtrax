@@ -28,7 +28,7 @@
 
 <script lang='ts' setup>
 import { useDialogPluginComponent } from 'quasar';
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 import { toRef } from 'vue';
 import { wsUrl } from '../scripts/utils';
 

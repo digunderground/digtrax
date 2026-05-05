@@ -1,4 +1,4 @@
-import { get1t, OneTagger } from "./onetagger";
+import { get1t, DigTrax } from "./digtrax";
 import { httpUrl, wsUrl } from "./utils";
 
 const WAVES = 180;
@@ -21,7 +21,7 @@ class Player {
     _playerLoadPromise?: Promise<any>;
     _playerLoadResolve?: any;
 
-    constructor($1t: OneTagger) {
+    constructor($1t: DigTrax) {
         // Setup
         this.generateDefaultWaveform();
         setInterval(() => {

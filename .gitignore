@@ -1,4 +1,5 @@
 /target
+**/target/
 sample/
 GPUCache/
 *.log
@@ -17,3 +18,9 @@ assets/vc_redist.x64.exe
 perf.data
 perf.data.old
 flamegraph.svg
+
+# macOS
+.DS_Store
+
+# Recall folder (per-project session recaps)
+recall/

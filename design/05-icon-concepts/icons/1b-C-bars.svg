@@ -1,0 +1,68 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgCb" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#0e131e"/><stop offset="100%" stop-color="#050811"/></radialGradient>
+    <linearGradient id="barCb" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"  stop-color="#1ee5d2"/>
+      <stop offset="100%" stop-color="#00D2BF"/>
+    </linearGradient>
+    <filter id="glowCb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="glowSmCb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bgCb)"/>
+
+  <!-- ambient -->
+  <circle cx="256" cy="256" r="180" fill="#00D2BF" opacity="0.07" filter="url(#glowCb)"/>
+
+  <!-- grooves -->
+  <g fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round">
+    <circle cx="256" cy="256" r="172" opacity="0.18"/>
+    <circle cx="256" cy="256" r="138" opacity="0.22"/>
+    <circle cx="256" cy="256" r="104" opacity="0.18"/>
+    <circle cx="256" cy="256" r="68"  opacity="0.22"/>
+  </g>
+  <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="6" opacity="0.55" filter="url(#glowCb)"/>
+  <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="3.5"/>
+
+  <!-- spindle -->
+  <circle cx="256" cy="256" r="18" fill="#00D2BF" filter="url(#glowSmCb)"/>
+  <circle cx="256" cy="256" r="11" fill="#ffffff"/>
+  <circle cx="256" cy="256" r="4" fill="#050811"/>
+
+  <!-- LARGE ROUNDED TAG with EQ frequency bars inside -->
+  <g transform="translate(370 256)">
+    <path d="M -49 0 L -23 -36 Q -19 -39 -14 -39 L 63 -39 Q 68 -39 68 -34 L 68 34 Q 68 39 63 39 L -14 39 Q -19 39 -23 36 Z"
+          fill="#00D2BF" opacity="0.40" filter="url(#glowSmCb)"/>
+    <path d="M -49 0 L -23 -36 Q -19 -39 -14 -39 L 63 -39 Q 68 -39 68 -34 L 68 34 Q 68 39 63 39 L -14 39 Q -19 39 -23 36 Z"
+          fill="#ffffff" stroke="rgba(0,0,0,0.30)" stroke-width="1.75" stroke-linejoin="round"/>
+
+    <!-- EQ FREQUENCY BARS — 11 bars, organic varied heights -->
+    <!-- glow under bars -->
+    <g filter="url(#glowCb)" opacity="0.6">
+      <rect x="-13" y="-7"  width="5" height="14" rx="1.5" fill="#00D2BF"/>
+      <rect x="-6"  y="-13" width="5" height="26" rx="1.5" fill="#00D2BF"/>
+      <rect x="1"   y="-9"  width="5" height="18" rx="1.5" fill="#00D2BF"/>
+      <rect x="8"   y="-21" width="5" height="42" rx="1.5" fill="#00D2BF"/>
+      <rect x="15"  y="-16" width="5" height="32" rx="1.5" fill="#00D2BF"/>
+      <rect x="22"  y="-30" width="5" height="60" rx="1.5" fill="#00D2BF"/>
+      <rect x="29"  y="-25" width="5" height="50" rx="1.5" fill="#00D2BF"/>
+      <rect x="36"  y="-19" width="5" height="38" rx="1.5" fill="#00D2BF"/>
+      <rect x="43"  y="-13" width="5" height="26" rx="1.5" fill="#00D2BF"/>
+      <rect x="50"  y="-7"  width="5" height="14" rx="1.5" fill="#00D2BF"/>
+      <rect x="57"  y="-4"  width="5" height="8"  rx="1.5" fill="#00D2BF"/>
+    </g>
+    <!-- main bars -->
+    <g fill="url(#barCb)">
+      <rect x="-13" y="-7"  width="5" height="14" rx="1.5"/>
+      <rect x="-6"  y="-13" width="5" height="26" rx="1.5"/>
+      <rect x="1"   y="-9"  width="5" height="18" rx="1.5"/>
+      <rect x="8"   y="-21" width="5" height="42" rx="1.5"/>
+      <rect x="15"  y="-16" width="5" height="32" rx="1.5"/>
+      <rect x="22"  y="-30" width="5" height="60" rx="1.5"/>
+      <rect x="29"  y="-25" width="5" height="50" rx="1.5"/>
+      <rect x="36"  y="-19" width="5" height="38" rx="1.5"/>
+      <rect x="43"  y="-13" width="5" height="26" rx="1.5"/>
+      <rect x="50"  y="-7"  width="5" height="14" rx="1.5"/>
+      <rect x="57"  y="-4"  width="5" height="8"  rx="1.5"/>
+    </g>
+  </g>
+</svg>

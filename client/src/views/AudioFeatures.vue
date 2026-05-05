@@ -124,7 +124,7 @@
         <div class='text-subtitle2 text-bold text-primary custom-margin' style='margin-bottom: 8px;'>OPTIONS</div>
 
         <div class='column flex-center'>
-            <q-toggle class='justify-between' style='width: 200px;' label='Write OneTagger meta tag' left-label v-model='config.metaTag'></q-toggle>
+            <q-toggle class='justify-between' style='width: 200px;' label='Write DigTrax meta tag' left-label v-model='config.metaTag'></q-toggle>
             <q-toggle class='justify-between' style='width: 200px;' label='Skip already tagged tracks' left-label v-model='config.skipTagged'></q-toggle>
             <q-toggle class='justify-between' style='width: 200px;' label='Include subfolders' left-label v-model='config.includeSubfolders'></q-toggle>
         </div>
@@ -181,7 +181,7 @@ import CliDialog from '../components/CliDialog.vue';
 import { Playlist } from '../scripts/utils';
 import { onMounted, ref } from 'vue';
 import { AudioFeaturesConfig } from '../scripts/settings';
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 import { useRouter } from 'vue-router';
 
 const $1t = get1t();
@@ -264,11 +264,13 @@ onMounted(() => {
 }
 
 .click-highlight {
-    padding: 4px;
-    border-radius: 2px;
-    background: #262828;
+    padding: 3px 7px;
+    border-radius: var(--radius-xs);
+    background: var(--color-bg-overlay);
+    border: 1px solid var(--color-border);
     margin-bottom: 4px;
     margin-left: 4px;
+    font-family: var(--font-mono);
 }
 
 </style>

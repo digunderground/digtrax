@@ -1,0 +1,48 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg5a" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#0e131e"/><stop offset="100%" stop-color="#050811"/></radialGradient>
+    <radialGradient id="lbl5a" cx="50%" cy="35%" r="80%"><stop offset="0%" stop-color="#1ee5d2"/><stop offset="100%" stop-color="#00D2BF"/></radialGradient>
+    <filter id="glow5a" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="glowSm5a" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg5a)"/>
+
+  <!-- ambient cyan halo -->
+  <circle cx="256" cy="262" r="180" fill="#00D2BF" opacity="0.08" filter="url(#glow5a)"/>
+
+  <!-- 4 outer grooves (large, simple, scale-friendly) -->
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round">
+    <circle cx="256" cy="262" r="178" opacity="0.16"/>
+    <circle cx="256" cy="262" r="160" opacity="0.20"/>
+    <circle cx="256" cy="262" r="142" opacity="0.16"/>
+  </g>
+  <!-- accent ring -->
+  <circle cx="256" cy="262" r="178" fill="none" stroke="#00D2BF" stroke-width="3" opacity="0.5" filter="url(#glow5a)"/>
+
+  <!-- TAG-shaped center label (point UP) replacing the round label -->
+  <!-- pentagon: 256,162 (top point) → 326,232 → 326,348 → corners rounded → 186,348 → 186,232 -->
+  <g filter="url(#glow5a)">
+    <path d="M 256 162 L 326 232 L 326 338 Q 326 354 310 354 L 202 354 Q 186 354 186 338 L 186 232 Z"
+          fill="#00D2BF" opacity="0.45"/>
+  </g>
+  <path d="M 256 162 L 326 232 L 326 338 Q 326 354 310 354 L 202 354 Q 186 354 186 338 L 186 232 Z"
+        fill="url(#lbl5a)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+
+  <!-- string hole at top of tag (where it'd hang from) -->
+  <circle cx="256" cy="208" r="9" fill="#050811"/>
+  <circle cx="256" cy="208" r="9" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+
+  <!-- inner waveform (dark on cyan tag, the "track signature") -->
+  <g transform="translate(256 290)">
+    <g fill="rgba(5,8,17,0.85)">
+      <rect x="-46" y="-6"  width="6" height="12" rx="1.5"/>
+      <rect x="-34" y="-14" width="6" height="28" rx="1.5"/>
+      <rect x="-22" y="-22" width="6" height="44" rx="1.5"/>
+      <rect x="-10" y="-30" width="6" height="60" rx="1.5"/>
+      <rect x="2"   y="-22" width="6" height="44" rx="1.5"/>
+      <rect x="14"  y="-16" width="6" height="32" rx="1.5"/>
+      <rect x="26"  y="-10" width="6" height="20" rx="1.5"/>
+      <rect x="38"  y="-6"  width="6" height="12" rx="1.5"/>
+    </g>
+  </g>
+</svg>

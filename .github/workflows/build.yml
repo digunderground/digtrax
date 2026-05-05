@@ -50,23 +50,23 @@ jobs:
 
     - name: Bundle
       run: |
-        tar zcf OneTagger-linux.tar.gz -C target/release onetagger
-        tar zcf OneTagger-linux-cli.tar.gz -C target/release onetagger-cli
+        tar zcf DigTrax-linux.tar.gz -C target/release digtrax
+        tar zcf DigTrax-linux-cli.tar.gz -C target/release digtrax-cli
         mkdir dist
-        mv OneTagger-linux.tar.gz dist/
-        mv OneTagger-linux-cli.tar.gz dist/
-    
+        mv DigTrax-linux.tar.gz dist/
+        mv DigTrax-linux-cli.tar.gz dist/
+
     - name: Upload Linux
       uses: actions/upload-artifact@v4
       with:
-        name: onetagger-linux
-        path: dist/OneTagger-linux.tar.gz
-    
+        name: digtrax-linux
+        path: dist/DigTrax-linux.tar.gz
+
     - name: Upload Linux CLI
       uses: actions/upload-artifact@v4
       with:
-        name: onetagger-linux-cli
-        path: dist/OneTagger-linux-cli.tar.gz
+        name: digtrax-linux-cli
+        path: dist/DigTrax-linux-cli.tar.gz
 
 
   build-win:
@@ -118,32 +118,32 @@ jobs:
         powershell -command "(new-object System.Net.WebClient).DownloadFile('https://aka.ms/vs/16/release/vc_redist.x64.exe','vc_redist.x64.exe')"
         powershell -command "(new-object System.Net.WebClient).DownloadFile('https://go.microsoft.com/fwlink/p/?LinkId=2124703','MicrosoftEdgeWebview2Setup.exe')"
         &'C:\Program Files (x86)\NSIS\makensis.exe' 'assets\installer.nsi'
-        copy target\release\onetagger.exe dist\OneTagger-windows.exe
-        copy target\release\onetagger-cli.exe dist\OneTagger-windows-cli.exe
+        copy target\release\digtrax.exe dist\DigTrax-windows.exe
+        copy target\release\digtrax-cli.exe dist\DigTrax-windows-cli.exe
 
     - name: Upload Archive
       uses: actions/upload-artifact@v4
       with:
-        name: onetagger-win
-        path: | 
-          dist/OneTagger-windows.exe
-    
+        name: digtrax-win
+        path: |
+          dist/DigTrax-windows.exe
+
     - name: Upload Archive
       uses: actions/upload-artifact@v4
       with:
-        name: onetagger-win-setup
-        path: dist/OneTagger-windows-setup.exe
+        name: digtrax-win-setup
+        path: dist/DigTrax-windows-setup.exe
 
     - name: Upload CLI
       uses: actions/upload-artifact@v4
       with:
-        name: onetagger-win-cli
+        name: digtrax-win-cli
         path: |
-          dist/OneTagger-windows-cli.exe
+          dist/DigTrax-windows-cli.exe
 
   build-mac:
-    name: Mac
-    runs-on: macos-13
+    name: Mac (Universal)
+    runs-on: macos-14
 
     steps:
 
@@ -159,50 +159,76 @@ jobs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-universal-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Install dependencies
       run: |
-        brew install rustup nodejs pnpm
+        brew install pnpm
         rustup install stable
+        rustup target add x86_64-apple-darwin aarch64-apple-darwin
         cargo install cargo-bundle --version 0.6.1 --locked || true
-    
-    - name: Build
+
+    - name: Build frontend
       run: |
         cd client
         pnpm i
         pnpm run build
-        cd ..
-        cargo update
-        cargo build --release
-        cargo bundle --release
 
-    - name: Bundle
+    - name: Build both Rust targets
+      run: |
+        cargo update
+        cargo build --release --target aarch64-apple-darwin
+        cargo build --release --target x86_64-apple-darwin
+
+    - name: Lipo universal binaries
+      run: |
+        mkdir -p target/release
+        lipo -create -output target/release/digtrax \
+          target/aarch64-apple-darwin/release/digtrax \
+          target/x86_64-apple-darwin/release/digtrax
+        lipo -create -output target/release/digtrax-cli \
+          target/aarch64-apple-darwin/release/digtrax-cli \
+          target/x86_64-apple-darwin/release/digtrax-cli
+
+    - name: Bundle .app + replace inner binary with universal
+      run: |
+        # cargo-bundle only builds for the host arch; we overwrite the inner binary
+        # with the lipo'd universal one so the .app runs natively on both Intel + Apple Silicon.
+        cargo bundle --release
+        lipo -create -output target/release/bundle/osx/DigTrax.app/Contents/MacOS/digtrax \
+          target/aarch64-apple-darwin/release/digtrax \
+          target/x86_64-apple-darwin/release/digtrax
+        chmod +x target/release/bundle/osx/DigTrax.app/Contents/MacOS/digtrax
+        # Sanity check
+        lipo -info target/release/bundle/osx/DigTrax.app/Contents/MacOS/digtrax
+
+    - name: Ad-hoc codesign
+      run: |
+        codesign --force --deep -s - target/release/bundle/osx/DigTrax.app
+        codesign --force -s - target/release/digtrax-cli
+
+    - name: Package
       run: |
         mkdir dist
-
         cd target/release/bundle/osx
-        chmod +x OneTagger.app/Contents/MacOS/onetagger
-        zip -r OneTagger-mac.zip .
+        zip -r DigTrax-mac.zip .
         cd -
-
         cd target/release
-        chmod +x onetagger-cli
-        zip OneTagger-mac-cli.zip onetagger-cli
+        chmod +x digtrax-cli
+        zip DigTrax-mac-cli.zip digtrax-cli
         cd -
-
-        mv target/release/bundle/osx/OneTagger-mac.zip dist/
-        mv target/release/OneTagger-mac-cli.zip dist/
+        mv target/release/bundle/osx/DigTrax-mac.zip dist/
+        mv target/release/DigTrax-mac-cli.zip dist/
 
     - name: Upload Mac
       uses: actions/upload-artifact@v4
       with:
-        name: onetagger-mac
-        path: dist/OneTagger-mac.zip
+        name: digtrax-mac
+        path: dist/DigTrax-mac.zip
 
     - name: Upload Mac CLI
       uses: actions/upload-artifact@v4
       with:
-        name: onetagger-mac-cli
-        path: dist/OneTagger-mac-cli.zip
+        name: digtrax-mac-cli
+        path: dist/DigTrax-mac-cli.zip
 

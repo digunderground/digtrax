@@ -200,7 +200,7 @@ const SUPPORTED_TAGS = [
     { tag: SupportedTag.ReleaseDate, label: 'Release Date' },
     { tag: SupportedTag.URL, label: 'URL' },
     { tag: SupportedTag.OtherTags, label: 'Other Tags', tooltip: 'Specific tags only for some platforms' },
-    { tag: SupportedTag.MetaTags, label: 'OneTagger Tags', tooltip: 'Adds 1T_TAGGEDDATE tag with timestamp' },
+    { tag: SupportedTag.MetaTags, label: 'DigTrax Tags', tooltip: 'Adds 1T_TAGGEDDATE tag with timestamp' },
     { tag: SupportedTag.UnsyncedLyrics, label: 'Unsynced Lyrics' },
     { tag: SupportedTag.SyncedLyrics, label: 'Synced Lyrics' },
     { tag: SupportedTag.Explicit, label: 'Explicit' },

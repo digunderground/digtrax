@@ -1,90 +1,106 @@
 <template>
-<div>
-    <q-card flat class='q-mx-md qt-tile' :class='{"bg-onetagger-icon": selected}'>
-        <div class='row qt-tile'>
-            <div class='selected-bar bg-primary' v-if='selected'></div>
-            <div class='row q-pt-md q-pl-md full-width full-height'>
-                <!-- Art -->
-                <div class='col-1 qt-tile-main'>
-                    <q-img 
-                        :src='art' 
-                        width='50px' 
-                        height='50px' 
-                        class='rounded-borders' 
-                        :placeholder-src='PLACEHOLDER_IMG'
+<div class='qt-card-wrap' :style='{ "--track-c": trackC, "--track-glow": trackGlow }'>
+    <q-card flat class='qt-card' :class='{"qt-card-selected": selected}'>
+
+        <!-- Cover area: aspect-locked, gradient fallback, title + bpm/key overlays -->
+        <div class='qt-card-cover'>
+            <q-img
+                :src='art'
+                class='qt-card-art'
+                :placeholder-src='PLACEHOLDER_IMG'
+                no-spinner
+            >
+                <template v-slot:error>
+                    <div class='qt-card-art-fallback'></div>
+                </template>
+            </q-img>
+
+            <!-- Gradient scrim for legibility of overlays -->
+            <div class='qt-card-cover-scrim'></div>
+
+            <!-- Title overlay (uppercase, V4 mono) -->
+            <div class='qt-card-title-overlay'>
+                <div class='qt-card-title-text'>{{ track.title }}</div>
+            </div>
+
+            <!-- BPM / Key chip top-right -->
+            <div class='qt-card-bpm-chip' v-if='track.bpm || track.key'>
+                <span v-if='track.bpm' class='monospace'>{{ track.bpm }}</span>
+                <span v-if='track.bpm && track.key' class='qt-card-bpm-sep'> · </span>
+                <span v-if='track.key' class='monospace' :style='keyColor(track.key)'>{{ track.key }}</span>
+            </div>
+
+            <!-- Year (subtle, top-left) -->
+            <div class='qt-card-year' v-if='track.year'>{{ track.year }}</div>
+        </div>
+
+        <!-- Meta block below cover -->
+        <div class='qt-card-meta'>
+            <div class='qt-card-name'>{{ track.title }}</div>
+            <div class='qt-card-artist'>{{ track.artists.join(', ') }}</div>
+
+            <!-- Data row: mood, energy, genre, customs -->
+            <div class='qt-card-data'>
+                <!-- Mood chip (V4 style — colored pill) -->
+                <q-chip
+                    v-if='getMood(track.mood)'
+                    dense
+                    :color='getMood(track.mood)!.color + ""'
+                    :outline='getMood(track.mood)!.outline'
+                    :label='getMood(track.mood)!.mood'
+                    class='qt-card-mood-chip cursor-pointer'
+                    @click='removeMood(track.mood)'
+                ></q-chip>
+
+                <!-- Energy pips (more compact than stars) -->
+                <q-rating
+                    size='14px'
+                    v-model='track.energy'
+                    no-reset
+                    :readonly='!selected'
+                    class='qt-card-rating'
+                    color='primary'
+                    color-selected='primary'
+                ></q-rating>
+
+                <!-- Genres (clickable when selected) -->
+                <div class='qt-card-genres' v-if='track.genres.length'>
+                    <span
+                        v-if='selected'
+                        v-for='(genre, i) in track.genres'
+                        :key='"gen" + i'
+                        class='qt-card-genre clickable'
+                        @click='removeGenre(genre)'
                     >
-                        <template v-slot:error>
-                            <q-img :src='PLACEHOLDER_IMG' width='50px' height='50px' class='rounded-borders'></q-img>
-                        </template>
-                    </q-img>
+                        {{ genre }}<span v-if='i != track.genres.length - 1'>, </span>
+                    </span>
+                    <span v-if='!selected' class='qt-card-genre'>{{ track.genres.join(', ') }}</span>
                 </div>
-                <!-- Title -->
-                <div class='col-4 q-pl-sm'>
-                    <span class='text-subtitle2 text-grey-4 text-weight-medium text-no-wrap title-span qt-tile-main'>{{track.title}}</span>
-                    <span class='text-subtitle2 text-grey-6 text-weight-medium text-no-wrap title-span'>{{track.artists.join(", ")}}</span>
-                </div>
-                <!-- Details -->
-                <div class='col-7 row text-center text-subtitle2 text-weight-medium items-center'>
-                    <div class='col-3 qt-tile-col' @click='removeMood(track.mood)'>
-                        <!-- Mood -->
-                        <q-chip 
-                            v-if='getMood(track.mood)'
-                            :color='getMood(track.mood)!.color + ""'
-                            :outline='getMood(track.mood)!.outline'
-                            :label='getMood(track.mood)!.mood'
-                            class='cursor-pointer'
-                        ></q-chip>
-                    </div>
-                    <div class='col-3 qt-tile-col'>
-                        <!-- Track rating -->
-                        <q-rating 
-                            size='1.2em' 
-                            v-model='track.energy'
-                            no-reset
-                            :readonly='!selected'
-                        ></q-rating>
-                    </div>
 
-                    <div class='col-4 qt-tile-col text-grey-4 text-caption text-weight-bold'>
-                        <!-- Genres -->
-                        <div v-if='selected'>
-                            <span 
-                                v-for='(genre, i) in track.genres' 
-                                :key='"gen"+i'
-                                :class='{"hover-strike": selected}'
-                                @click='removeGenre(genre)'
-                            >
-                                {{genre}}<span v-if='i != track.genres.length - 1'>, </span>
-                            </span>
-                        </div>
-                        <div v-if='!selected'>{{track.genres.join(', ')}}</div>
-
-                        <div class='text-grey-6 text-weight-medium monospace'>{{track.year}}</div>
-                    </div>
-                    <div class='mt-3 col-1 qt-tile-col text-caption text-grey-4 text-weight-medium'>
-                        <span class='monospace' v-if='track.bpm'>{{track.bpm}}</span>
-                        <br v-if='track.bpm && track.key'>
-                        <span :style='keyColor(track.key)'>{{track.key}}</span>
-                    </div>
-                    <div class='col-1 q-mt-xs'>
-                        <!-- <q-btn round flat icon='mdi-dots-horizontal' color='primary'></q-btn> -->
-                    </div>
+                <!-- Hot-cue dots: one per custom tag, color hashed from value (V4) -->
+                <div class='qt-card-cues' v-if='cueDots.length'>
+                    <span
+                        v-for='(c, i) in cueDots'
+                        :key='"cdot"+i'
+                        class='cue-dot'
+                        :style='{ background: c, color: c }'
+                    ></span>
                 </div>
             </div>
 
-        </div>
-
-        <!-- Custom tags -->
-        <div class='row q-mx-sm no-wrap overflow-hidden custom-tag-chips text-subtitle2'>
-            <div v-for='(tag, i) in track.getAllCustom()' :key='"qtc"+i'  @click='removeCustom(tag)'>
-                <q-chip 
+            <!-- Custom tag chips at the bottom -->
+            <div class='qt-card-customs' v-if='track.getAllCustom().length'>
+                <q-chip
+                    v-for='(tag, i) in track.getAllCustom()'
+                    :key='"qtc" + i'
                     icon='mdi-close'
-                    dense 
-                    square 
-                    :label='tag.value' 
-                    outline 
-                    color='primary' 
-                    class='qt-tile-chip' 
+                    dense
+                    square
+                    :label='tag.value'
+                    outline
+                    color='primary'
+                    class='qt-tile-chip qt-card-customchip'
+                    @click='removeCustom(tag)'
                 ></q-chip>
             </div>
         </div>
@@ -95,10 +111,10 @@
 
 <script lang='ts' setup>
 import { computed, toRef } from 'vue';
-import { get1t } from '../scripts/onetagger.js';
+import { get1t } from '../scripts/digtrax.js';
 import { CAMELOT_KEYS, CustomTagInfo, KEY_COLORS, OPENKEY_KEYS, PLACEHOLDER_IMG, QTTrack } from '../scripts/quicktag.js';
 import { httpUrl } from '../scripts/utils.js';
-
+import { hashColor, trackPaint } from '../scripts/trackColors.js';
 
 const $1t = get1t();
 const props = defineProps({
@@ -108,11 +124,9 @@ const props = defineProps({
 const inputTrack = toRef(props, 'track');
 const noArtCache = toRef(props, 'noArtCache');
 
-// Get mood by name
 function getMood(name?: string) {
     if (!name) return;
     let mood = $1t.settings.value.quickTag.moods.find(m => m.mood == name);
-    // Inject outline if unknown mood
     if (mood) {
         mood.outline = false;
         return mood;
@@ -125,44 +139,33 @@ function removeMood(mood?: string) {
     track.value.mood = undefined;
 }
 
-// Remove genre from track
 function removeGenre(genre: string) {
     track.value.toggleGenre(genre);
 }
 
-// Get color for musical key
 function keyColor(key?: string) {
     if (!key) return;
     key = key.trim().toUpperCase();
-    // Camelot or OpenKey
     let color = KEY_COLORS[CAMELOT_KEYS[key.toUpperCase()]] || KEY_COLORS[OPENKEY_KEYS[key.toLowerCase()]];
-    // Normal
     if (!color) {
         if (key.length < 3) key = `0${key}`;
         color = KEY_COLORS[key.toUpperCase()];
     }
-    if (color) {
-        return `color: ${color};`;
-    }
+    if (color) return `color: ${color};`;
 }
 
-/// Remove custom tag chip
 function removeCustom(tag: CustomTagInfo) {
     if (!selected.value) return;
-
     if (tag.type === 'custom') {
         track.value.removeCustom(tag.index, tag.value);
         return;
-    }    
-    // Note
+    }
     let values = track.value.getNote().split(",")
-                .map(n => n.trim())
-                .filter(n => n && n != tag.value);
-    track.value.setNote(values.join(", "));  // Note the space after comma
+        .map(n => n.trim())
+        .filter(n => n && n != tag.value);
+    track.value.setNote(values.join(", "));
 }
 
-
-/// If selected, use selected track, else input track
 const track = computed(() => {
     let track = $1t.quickTag.value.track.getTrack(inputTrack.value.path);
     if (!track) track = inputTrack.value;
@@ -172,70 +175,271 @@ const track = computed(() => {
 const selected = computed(() => $1t.quickTag.value.track.isSelected(track.value));
 const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.value.path)}${noArtCache.value ? "&_=" + Math.random().toString() : ""}`);
 
+// Track color/glow — mood-derived when available, else hash-stable per track.
+const paint = computed(() => trackPaint(track.value, $1t.settings.value));
+const trackC = computed(() => paint.value.color);
+const trackGlow = computed(() => paint.value.glow);
+
+// Up to 4 colored hot-cue dots from custom tags.
+const cueDots = computed(() => track.value.getAllCustom().slice(0, 4).map(t => hashColor(t.value || '')));
 </script>
 
-<style>
-.selected-bar {
-    position: absolute;
-    width: 5px;
-    height: 104px;
-    border-radius: 4px;
+<style lang='scss' scoped>
+.qt-card-wrap {
+    height: 100%;
+    width: 100%;
 }
+
+/* V4 — vertical track tile. Cover up top, meta below, glow halo when selected. */
+.qt-card {
+    height: 100%;
+    width: 100%;
+    background: var(--color-bg-elevated) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-md) !important;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                background var(--duration-fast) var(--ease-standard),
+                box-shadow var(--duration-fast) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard);
+    box-shadow: none !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.qt-card:hover {
+    border-color: var(--color-border-strong) !important;
+    background: var(--color-bg-overlay) !important;
+    transform: translateY(-1px);
+}
+
+/* V4 — selected halo uses the track's own color, matching the design mockup */
+.qt-card-selected {
+    border-color: var(--track-c) !important;
+    box-shadow: 0 0 0 2px var(--track-c), 0 0 32px var(--track-glow) !important;
+    background: var(--color-bg-overlay) !important;
+}
+
+/* Cover area — 1.6 aspect ratio (V4 mockup) */
+.qt-card-cover {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1.6;
+    background: linear-gradient(135deg, #1a2030, var(--color-bg));
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.qt-card-art {
+    width: 100%;
+    height: 100%;
+}
+
+.qt-card-art-fallback {
+    width: 100%;
+    height: 100%;
+    /* V4 — fallback gradient uses the track's color so every track-no-art is still distinct */
+    background: linear-gradient(135deg, var(--track-c, var(--color-accent)), color-mix(in srgb, var(--track-c, var(--color-accent)) 25%, var(--color-bg)));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qt-card-art-fallback::before {
+    content: '♪';
+    font-family: var(--font-mono);
+    font-size: 32px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.qt-card-cover-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+                rgba(5, 8, 17, 0.5) 0%,
+                rgba(5, 8, 17, 0) 30%,
+                rgba(5, 8, 17, 0) 60%,
+                rgba(5, 8, 17, 0.7) 100%);
+    pointer-events: none;
+}
+
+.qt-card-title-overlay {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 10px;
+    pointer-events: none;
+}
+
+.qt-card-title-text {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.2;
+    color: rgba(255, 255, 255, 0.96);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.qt-card-bpm-chip {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.qt-card-bpm-sep {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.qt-card-year {
+    position: absolute;
+    top: 8px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 2px 7px;
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Meta block below cover */
+.qt-card-meta {
+    flex: 1;
+    padding: 10px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 0;
+}
+
+.qt-card-name {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--color-fg);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.qt-card-artist {
+    font-size: 11px;
+    color: var(--color-fg-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+
+.qt-card-data {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: auto;
+    margin-bottom: 4px;
+}
+
+.qt-card-mood-chip {
+    margin: 0 !important;
+    height: 20px !important;
+    font-size: 10px !important;
+    padding: 0 8px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.qt-card-rating {
+    flex-shrink: 0;
+}
+
+.qt-card-genres {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.qt-card-genre {
+    font-size: 10px;
+    color: var(--color-fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.qt-card-genre.clickable:hover {
+    text-decoration: line-through;
+    cursor: pointer;
+}
+
+.qt-card-cues {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.cue-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    box-shadow: 0 0 5px currentColor;
+}
+
+.qt-card-customs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+    overflow: hidden;
+    max-height: 24px;
+}
+
 .qt-tile-chip {
     cursor: pointer;
-    font-size: 13px;
+    font-size: 11px;
+    margin: 0 !important;
+    height: 18px !important;
+    padding: 0 6px !important;
 }
 
-.qt-tile-chip div {
-    color: #E0E0E0;
-    font-size: 13px;
+.qt-tile-chip :deep(.q-chip__content) {
+    color: var(--color-accent);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
-.qt-tile-chip .q-icon {
+.qt-tile-chip :deep(.q-icon) {
     display: none;
 }
 
-.qt-tile-chip:hover .q-icon {
+.qt-tile-chip:hover :deep(.q-icon) {
     display: inline;
-    padding-top: 2px;
     cursor: pointer;
 }
-
-.qt-tile {
-    height: 104px;
-    min-height: 104px;
-    max-height: 104px;
-}
-
-.qt-tile:hover {
-    background: #1A1A1A;
-}
-
-.title-span {
-    text-overflow: ellipsis;
-    overflow: hidden;
-    display: block;
-}
-.custom-tag-chips {
-    margin-top: -38px;
-    margin-left: 12px;
-}
-
-.hover-strike:hover {
-    text-decoration: line-through;    
-    cursor: pointer;
-}
-
-.qt-tile-main {
-    margin-top: -4px;
-}
-
-.qt-tile-col {
-    margin-top: -41px;
-}
-
-.mt-3 {
-    margin-top: -40px;
-}
-
 </style>

@@ -30,7 +30,7 @@
 
 <script lang='ts' setup>
 import { onMounted, ref } from 'vue';
-import { get1t } from '../scripts/onetagger.js';
+import { get1t } from '../scripts/digtrax.js';
 
 const { base } = defineProps({
     base: { type: String, default: '/' }

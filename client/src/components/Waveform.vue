@@ -25,7 +25,7 @@
 <script lang='ts' setup>
 import { getCssVar, setCssVar } from 'quasar';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 
 const $1t = get1t();
 const hover = ref(false);

@@ -1,85 +1,80 @@
-<p align='center'>
-    <img alt='Logo' src='https://raw.githubusercontent.com/Marekkon5/onetagger/master/assets/onetagger-logo-github.png'>
-</p>
-<h1 align='center'>The ultimate cross-platform tagger for DJs</h1>
-
-<h3 align='center'><b>
-<a href='https://onetagger.github.io/'>Website</a> | <a href='https://github.com/Marekkon5/onetagger/releases/'>Latest Release</a>
-</b></h3>
-<br>
+<h1 align='center'>DigTrax</h1>
+<h3 align='center'>The cross-platform music tagger for DJs</h3>
 
 <p align='center'>
-    <img alt='Version Badge' src='https://img.shields.io/github/v/release/marekkon5/onetagger?label=Latest%20Release'>
     <img alt='Supported OS' src='https://img.shields.io/badge/OS-Windows%2C%20Mac%20OS%2C%20Linux-orange'>
-    <img alt='Build Status' src='https://img.shields.io/github/actions/workflow/status/marekkon5/onetagger/build.yml?branch=master'>
 </p>
 
-<h3 align='center'><b></b></h3>
-<hr>
+DigTrax is a cross-platform music metadata tagger built for DJs. It fetches metadata from Beatport, Traxsource, Juno Download, Discogs, MusicBrainz, and Spotify; supports a manual editor and a keyboard-driven Quick Tag editor with energy / mood / genre / custom-tag bindings; and writes back to MP3, AIFF, FLAC, and M4A (AAC, ALAC) files.
 
-Cross-platform music tagger.
-It can fetch metadata from Beatport, Traxsource, Juno Download, Discogs, Musicbrainz and Spotify.
-It is also able to fetch Spotify's Audio Features based on ISRC & exact match. 
-There is a manual tag editor and quick tag editor which lets you use keyboard shortcuts. Written in Rust, Vue.js and Quasar.
-
-MP3, AIFF, FLAC, M4A (AAC, ALAC) supported.
-
-*For more info and tutorials check out our [website](https://onetagger.github.io/).*
-
-https://user-images.githubusercontent.com/15169286/193469224-cbf3af71-f6d7-4ecd-bdbf-5a1dca2d99c8.mp4
-
+Originally a fork of [OneTagger](https://github.com/Marekkon5/onetagger) by Marekkon5 — UI design originally by Bas Curtiz. DigTrax adds a redesigned UI, universal macOS builds, and a streamlined Quick Tag workflow.
 
 ## Installing
 
-You can download latest binaries from [releases](https://github.com/Marekkon5/onetagger/releases)
+Download the latest binaries for your platform from the [Releases](../../releases) page:
+- **macOS**: `DigTrax-mac.zip` — universal binary (Apple Silicon + Intel)
+- **Windows**: `DigTrax-windows-setup.exe` — installer
+- **Linux**: `DigTrax-linux.tar.gz` — extracted binary
 
+## Compiling
 
-## Credits
-Bas Curtiz - UI, Idea, Help  
-SongRec (Shazam support) - https://github.com/marin-m/SongRec
+### Linux & macOS
 
-## Support
-You can support this project by donating on [PayPal](https://paypal.me/marekkon5) or [Patreon](https://www.patreon.com/onetagger)
+Install dependencies: [rustup](https://rustup.rs), [Node.js](https://nodejs.org/), [pnpm](https://pnpm.io/installation).
 
-## Compilling
-
-### Linux & Mac
-Install dependencies: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/package-manager/), [pnpm](https://pnpm.io/installation)
-
-**Install remaining dependencies**
-```
+On Linux also install:
+```sh
 sudo apt install -y lld autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.1-dev
 ```
 
-**Compile UI**
-```
-cd client
-pnpm i
-pnpm run build
-cd ..
+Compile the UI:
+```sh
+cd client && pnpm i && pnpm run build && cd ..
 ```
 
-**Compile**
-```
+Compile the app:
+```sh
 cargo build --release
 ```
-Output will be in: `target/release/onetagger`
 
+Output: `target/release/digtrax` (and `target/release/digtrax-cli`).
+
+### Universal macOS build (Apple Silicon + Intel)
+
+```sh
+rustup target add x86_64-apple-darwin aarch64-apple-darwin
+cd client && pnpm i && pnpm run build && cd ..
+cargo build --release --target aarch64-apple-darwin
+cargo build --release --target x86_64-apple-darwin
+lipo -create -output target/release/digtrax \
+  target/aarch64-apple-darwin/release/digtrax \
+  target/x86_64-apple-darwin/release/digtrax
+cargo bundle --release
+lipo -create -output target/release/bundle/osx/DigTrax.app/Contents/MacOS/digtrax \
+  target/aarch64-apple-darwin/release/digtrax \
+  target/x86_64-apple-darwin/release/digtrax
+codesign --force --deep -s - target/release/bundle/osx/DigTrax.app
+```
+
+Output: `target/release/bundle/osx/DigTrax.app` — runs natively on both architectures.
 
 ### Windows
-You need to install dependencies: [rustup](https://rustup.rs), [nodejs](https://nodejs.org/en/download/), [Visual Studio 2019 Build Tools](https://aka.ms/vs/16/release/vs_buildtools.exe), [pnpm](https://pnpm.io/installation)
 
-**Compile UI:**
-```
-cd client
-pnpm i
-pnpm run build
-cd ..
-```
+Install dependencies: [rustup](https://rustup.rs), [Node.js](https://nodejs.org/), [Visual Studio 2019 Build Tools](https://aka.ms/vs/16/release/vs_buildtools.exe), [pnpm](https://pnpm.io/installation).
 
-**Compile OneTagger:**
-```
+```sh
+cd client && pnpm i && pnpm run build && cd ..
 cargo build --release
 ```
 
-Output will be inside `target\release` folder.
+Output: `target\release\digtrax.exe`.
+
+## Migration from OneTagger
+
+DigTrax automatically migrates user settings from any existing OneTagger install on first launch — your folder paths, mood/energy bindings, custom tag definitions, and platform auth tokens carry over. The original OneTagger config dir is left untouched as a backup; the new DigTrax config dir is created alongside it.
+
+## Credits
+
+- **Marekkon5** — Original OneTagger
+- **Bas Curtiz** — Original UI design
+- **SongRec** (Shazam support) — https://github.com/marin-m/SongRec

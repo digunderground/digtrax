@@ -3,6 +3,7 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 import Index from '../views/Index.vue';
 import TagEditor from '../views/TagEditor.vue';
 import Renamer from '../views/Renamer.vue';
+import Settings from '../components/Settings.vue';
 
 // Required for hot reload, idk why it broke
 const AutotaggerStatus = () => import('../views/AutotaggerStatus.vue');
@@ -13,8 +14,13 @@ const AudioFeatures = () => import('../views/AudioFeatures.vue');
 const history = createWebHashHistory();
 
 const routes = [
+    // V4: Quick Tag is the homepage. Old marketing screen kept reachable at /welcome.
     {
         path: '/',
+        redirect: '/quicktag'
+    },
+    {
+        path: '/welcome',
         component: Index
     },
     {
@@ -44,6 +50,10 @@ const routes = [
     {
         path: '/renamer',
         component: Renamer
+    },
+    {
+        path: '/settings',
+        component: Settings
     }
 ];
 

@@ -115,7 +115,7 @@
 <script lang='ts' setup>
 import TagFields from './TagFields.vue';
 import SpotifyLogin from './SpotifyLogin.vue';
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 import { computed } from 'vue';
 
 const $1t = get1t();

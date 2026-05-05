@@ -1,3 +1,23 @@
+# DigTrax — 1.8.0 (in progress)
+
+**Renamed from OneTagger to DigTrax.** Existing user config is migrated automatically on first launch — settings, mood/energy bindings, custom tag definitions, and platform auth tokens carry over from the OneTagger config dir to the new DigTrax dir. The legacy OneTagger dir is preserved as a backup.
+
+### UI:
+- Full V4 redesign — sidebar navigation replaces top tabs, Quick Tag is the default home route
+- New sortable + resizable column header for both Cards and Rows views in Quick Tag
+- Track-color palette: every track gets a stable color from an 8-color V4 palette (mood-derived or hash-stable)
+- Theme switcher (Dark / Light / System) — persisted to localStorage
+- Settings is now a real route, scales with the viewport
+- JetBrains Mono throughout, all-caps for display titles
+- Sharper album art (320×320 thumbnails, was 50×50)
+
+### Build:
+- macOS releases are now **universal** — single `.app` runs natively on Apple Silicon and Intel
+- 11 workspace crates renamed `onetagger-*` → `digtrax-*`
+- Bundle identifier is now `com.digtrax.app`
+- CI artifacts: `DigTrax-{mac,linux,windows}*` (was `OneTagger-*`)
+
+
 # 1.7.0
 **(03.08.2023)**
 

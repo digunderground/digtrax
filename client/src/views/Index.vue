@@ -1,113 +1,75 @@
 <template>
-<div class='index-container' oncontextmenu="return false;">
+<div class='dt-welcome' oncontextmenu="return false;">
+    <!-- Ambient gradient background -->
+    <div class='dt-welcome-bg'></div>
 
-    <!-- Background -->
-    <img src='../assets/bg.jpg' class='bg-image' ref='bgImage'>
-
-    <!-- Welcome -->
-    <div class='flex flex-center column'>
-        <img src="../assets/logo.svg" height='125' style='margin-top: 5%;'>
-        
-        
-        <div class='q-pt-md text-center text-h6 text-grey-4 text-weight-medium'>The ultimate cross-platform music tagger for DJs</div>
-        
-        <div class='q-pt-lg text-subtitle1 text-bold text-grey-4'>Version {{$1t.info.value.version}}</div>
-        <span a class='doc-link text-subtitle2 clickable' @click='$1t.url("https://onetagger.github.io")'>OneTagger.GitHub.io</span>
-        <div class='q-pt-sm q-pb-xs text-subtitle2 text-grey-4'>
-            Developed by Marekkon5 & UI design by Bas Curtiz
+    <div class='dt-welcome-inner'>
+        <!-- Brand lockup -->
+        <div class='dt-welcome-brand'>
+            <span class='dt-welcome-mark'>
+                <span class='dig'>DIG</span><span class='trax'>TRAX</span>
+            </span>
+            <div class='dt-welcome-tagline'>The cross-platform music tagger for DJs</div>
+            <div class='dt-welcome-version'>
+                Version <span>{{$1t.info.value.version}}</span>
+            </div>
         </div>
 
-        <div class="getting-started-cards flex flex-center column" style="min-height: 50px; width: 100%;">
-            <div class="fit row no-wrap row justify-center content-center" style="overflow: hidden;">
-                <div class="text-subtitle1">
-                    <q-card class='col-3 rounded-borders' style="max-width: 400px; margin-left: 25px; margin-right: 25px;">
-                        <q-card-section>
-                            <div class='col-3 text-primary text-bold text-subtitle2'>AUTO TAG</div>
-                            <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm' style='line-height: 24px'>
-                                Automatically tag your local audio files, from several online platforms,
-                                based on <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Artist</span></q-badge> and <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Title</span></q-badge> tag, filename or playlist. Or identify audio using <b>Shazam</b>.<br>
-                                <q-btn dense push color='primary' class='rounded-borders q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='help("autotagger")'>Read more</q-btn>
-                                
-                            </div>
-                        </q-card-section>
-                    </q-card>                    
+        <!-- Feature cards -->
+        <div class='dt-welcome-grid'>
+            <div class='dt-welcome-card' @click='help("autotagger")'>
+                <div class='dt-welcome-card-icon'><q-icon name='mdi-tag-multiple' size='28px'></q-icon></div>
+                <div class='dt-welcome-card-title'>// Auto Tag</div>
+                <div class='dt-welcome-card-body'>
+                    Automatically tag local audio files from Beatport, Traxsource, Juno, Discogs, MusicBrainz, and Spotify — based on artist + title, filename, or playlist. Or identify with Shazam.
                 </div>
-
-                <div class="text-subtitle1" style="overflow: auto;">
-                    <q-card class='col-3 rounded-borders' style="max-width: 400px; margin-left: 25px; margin-right: 25px;">
-                        <q-card-section>
-                            <div class='col-3 text-primary text-bold text-subtitle2'>AUDIO FEATURES</div>
-                            <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm' style='line-height: 24px'>
-                                Automatically tag your local audio files, with so called audio features by <b>Spotify</b>, based on <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>ISRC</span></q-badge> tag or exact match.<br>
-                                Free account required.<br>
-                                <q-btn dense push color='primary' class='rounded-borders q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='help("audiofeatures")'>Read more</q-btn>
-                            </div>
-                        </q-card-section>
-                    </q-card>
-                </div>
-                
-                <div class="text-subtitle1" style="overflow: auto;">
-                    <q-card class='col-3 rounded-borders' style="max-width: 400px; margin-left: 25px; margin-right: 25px;">
-                        <q-card-section>
-                            <div class='col-3 text-primary text-bold text-subtitle2'>QUICK TAG</div>
-                            <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm' style='line-height: 24px'>
-                                Tag your local audio files quickly based on 
-                                    <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Energy</span></q-badge> , 
-                                    <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Mood</span></q-badge> , 
-                                    <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Genre</span></q-badge>
-                                and other you defined. Key bind compatible. Or use <span class='text-primary text-bold text-subtitle2'>MANUAL TAG</span> to fetch metadata per track.<br>
-                                
-                                <q-btn dense push color='primary' class='rounded-borders q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='help("quicktag")'>Read more</q-btn>
-                            </div>                
-                        </q-card-section>            
-                    </q-card>                    
-                </div>
-
-                <div class="text-subtitle1" style="overflow: auto;">
-                    <q-card class='col-3 rounded-borders' style="max-width: 400px; margin-left: 25px; margin-right: 25px;">
-                        <q-card-section>
-                            <div class='col-3 text-primary text-bold text-subtitle2'>AUTO RENAME</div>
-                            <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm' style='line-height: 24px'>
-                                Automatically rename your files based on tags. 
-                                The template string defines the format scheme of the new filename.<br>
-                                Including functions to batch process.<br>
-                                <q-btn dense push color='primary' class='rounded-borders q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='help("renamer")'>Read more</q-btn>
-                            </div>
-                        </q-card-section>
-                    </q-card>
-                </div>
-                
+                <div class='dt-welcome-card-cta'>Read more →</div>
             </div>
 
+            <div class='dt-welcome-card' @click='help("audiofeatures")'>
+                <div class='dt-welcome-card-icon'><q-icon name='mdi-waveform' size='28px'></q-icon></div>
+                <div class='dt-welcome-card-title'>// Audio Features</div>
+                <div class='dt-welcome-card-body'>
+                    Tag local audio with Spotify's audio features by ISRC tag or exact match. Free Spotify account required.
+                </div>
+                <div class='dt-welcome-card-cta'>Read more →</div>
+            </div>
+
+            <div class='dt-welcome-card dt-welcome-card-primary' @click='help("quicktag")'>
+                <div class='dt-welcome-card-icon'><q-icon name='mdi-flash' size='28px'></q-icon></div>
+                <div class='dt-welcome-card-title'>// Quick Tag</div>
+                <div class='dt-welcome-card-body'>
+                    Tag your audio quickly by energy, mood, genre, and custom tags. Keyboard-driven with bindings for fast review.
+                </div>
+                <div class='dt-welcome-card-cta'>Read more →</div>
+            </div>
+
+            <div class='dt-welcome-card' @click='help("renamer")'>
+                <div class='dt-welcome-card-icon'><q-icon name='mdi-rename-box' size='28px'></q-icon></div>
+                <div class='dt-welcome-card-title'>// Auto Rename</div>
+                <div class='dt-welcome-card-body'>
+                    Rename audio files based on tag values. Template-driven, with batch processing across folders.
+                </div>
+                <div class='dt-welcome-card-cta'>Read more →</div>
+            </div>
         </div>
 
-        <div class="row bottom-line flex-center" style="width: 100%;">
-            <div class='col text-center text-subtitle2 text-grey-4' style="max-width: 400px; margin-top: 20px; margin-left: 25px; margin-right: 25px;">
-                Need help? Click on <span class='text-bold'>Read more</span> buttons
+        <!-- Bottom row -->
+        <div class='dt-welcome-foot'>
+            <div class='dt-welcome-foot-item'>
+                Need help? Click <strong>Read more</strong> on any card above.
             </div>
-            <div class='col text-center text-subtitle2 text-grey-4' style="max-width: 400px; margin-top: 20px; margin-left: 25px; margin-right: 25px;">
-                Found a bug or have a request? Post it on 
-                <span class='tiny-logo text-bold clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'>
-                    GitHub
-                </span>
-            </div>
-            <div class='col text-center text-subtitle2 text-grey-4' style="max-width: 400px; margin-top: 20px; margin-left: 25px; margin-right: 25px;">
-                Like the app? Donate through 
-                <span class='tiny-logo text-bold clickable' @click='$1t.url("https://paypal.me/marekkon5")'>
-                    PayPal
-                </span> or 
-                <span class='tiny-logo text-bold clickable' @click='$1t.url("https://patreon.com/onetagger")'>
-                    Patreon
-                </span>
-            </div>
+        </div>
+
+        <div class='dt-welcome-credits'>
+            Originally created by Marekkon5 · UI design by Bas Curtiz
         </div>
     </div>
-
 </div>
 </template>
 
 <script lang='ts' setup>
-import { get1t } from '../scripts/onetagger.js';
+import { get1t } from '../scripts/digtrax.js';
 
 const $1t = get1t();
 function help(route: string) {
@@ -116,52 +78,187 @@ function help(route: string) {
 }
 </script>
 
-<style>
-.tiny-logo {
-    opacity: 0.9;
-    text-decoration-line: underline;
-}
-.tiny-logo:hover {
-    opacity: 1.0;
-    text-decoration-line: underline;    
-}
-.index-container {
-    overflow: hidden;
-    height: calc(100vh - 59px);
-}
-.getting-started-cards {
+<style lang="scss" scoped>
+.dt-welcome {
     position: relative;
-    margin-top: 30px;
-    max-width: 100%;  
-}
-.bottom-line {
-    position: absolute;
-    bottom: 35px;    
-}
-.bg-image {
-    max-width: 100%;    
-    position: fixed;    
-    z-index: -100;    
-    animation: anim 30s infinite;
-}
-.doc-link {
-    color: var(--q-primary);
-    text-decoration-line: underline;
-}
-.doc-link:hover {
-    color: #f0f0f0;
-    text-decoration-line: underline;
+    height: 100vh;
+    width: 100%;
+    overflow-y: auto;
+    background: var(--color-bg);
 }
 
-@keyframes anim {
-    0% {
-    transform: scale(1,1);
-    }
-    50% {
-    transform: scale(1.05,1.05);
-    }
-    100% {
-    transform: scale(1,1);
-    }
+.dt-welcome-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        radial-gradient(ellipse 1200px 600px at 20% 0%, rgba(0, 210, 191, 0.08), transparent 60%),
+        radial-gradient(ellipse 800px 600px at 100% 50%, rgba(167, 139, 250, 0.06), transparent 60%);
+}
+
+.dt-welcome-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 64px 32px 80px;
+}
+
+/* Brand */
+.dt-welcome-brand {
+    text-align: center;
+    margin-bottom: 56px;
+}
+
+.dt-welcome-mark {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 56px;
+    letter-spacing: 0.02em;
+    line-height: 1;
+}
+
+.dt-welcome-mark .dig {
+    color: var(--color-fg);
+}
+
+.dt-welcome-mark .trax {
+    color: var(--color-accent);
+    text-shadow: 0 0 32px var(--color-accent-glow);
+}
+
+.dt-welcome-tagline {
+    margin-top: 18px;
+    color: var(--color-fg-muted);
+    font-size: 15px;
+}
+
+.dt-welcome-version {
+    margin-top: 12px;
+    color: var(--color-fg-subtle);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.dt-welcome-version > span {
+    color: var(--color-fg-muted);
+}
+
+.dt-welcome-sep {
+    margin: 0 8px;
+    color: var(--color-fg-subtle) !important;
+}
+
+.dt-welcome-link {
+    color: var(--color-accent) !important;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(0, 210, 191, 0.4);
+    text-underline-offset: 3px;
+}
+
+.dt-welcome-link:hover {
+    text-decoration-color: var(--color-accent);
+}
+
+/* Card grid */
+.dt-welcome-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 48px;
+}
+
+.dt-welcome-card {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 24px 22px;
+    cursor: pointer;
+    transition: all var(--duration-base) var(--ease-standard);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 200px;
+}
+
+.dt-welcome-card:hover {
+    border-color: var(--color-border-strong);
+    background: var(--color-bg-overlay);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-2);
+}
+
+.dt-welcome-card-primary {
+    border-color: rgba(0, 210, 191, 0.3);
+    background: linear-gradient(135deg, rgba(0, 210, 191, 0.06), var(--color-bg-elevated));
+}
+
+.dt-welcome-card-primary:hover {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 24px var(--color-accent-glow);
+}
+
+.dt-welcome-card-icon {
+    color: var(--color-accent);
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: rgba(0, 210, 191, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dt-welcome-card-title {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-fg);
+}
+
+.dt-welcome-card-body {
+    flex: 1;
+    color: var(--color-fg-muted);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.dt-welcome-card-cta {
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+}
+
+/* Footer */
+.dt-welcome-foot {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    color: var(--color-fg-muted);
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.dt-welcome-foot-item {
+    padding: 8px 16px;
+}
+
+.dt-welcome-credits {
+    text-align: center;
+    color: var(--color-fg-subtle);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
 }
 </style>

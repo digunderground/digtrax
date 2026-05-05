@@ -87,7 +87,7 @@
 
         <AdvancedSettingsToggle 
             label='Skip already tagged tracks'
-            tooltip='Skip tracks with the 1T_TAGGEDDATE tag (One Tagger Tag)'
+            tooltip='Skip tracks with the 1T_TAGGEDDATE tag (DigTrax tag)'
             v-model='$1t.config.value.skipTagged'
         ></AdvancedSettingsToggle>
         
@@ -372,7 +372,7 @@
 
 <script lang='ts' setup>
 import { onMounted, ref } from 'vue';
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 import { FrameName } from '../scripts/utils';
 
 import Separators from './Separators.vue';

@@ -166,7 +166,7 @@
 <script lang='ts' setup>
 import { ref, toRefs, watch } from 'vue';
 import { TrackMatch } from '../scripts/manualtag';
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 import { AutotaggerConfig } from '../scripts/autotagger';
 import { useQuasar } from 'quasar';
 import AutotaggerPlatforms from './AutotaggerPlatforms.vue';
@@ -274,14 +274,17 @@ watch(path!, () => {
     height: 50vh;
     overflow-y: scroll;
     overflow-x: hidden;
-    border-radius: 8px;
-    background-color: #99999910 !important
+    border-radius: var(--radius-md);
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid var(--color-border);
 }
 .keybind-icon {
-    padding: 4px;
-    border-radius: 2px;
-    background: #262828;
+    padding: 3px 7px;
+    border-radius: var(--radius-xs);
+    background: var(--color-bg-overlay);
+    border: 1px solid var(--color-border);
     margin-bottom: 4px;
     margin-left: 4px;
+    font-family: var(--font-mono);
 }
 </style>

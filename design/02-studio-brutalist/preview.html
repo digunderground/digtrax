@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OneTagger — V02 Studio Brutalist</title>
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,500,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --color-bg: #0a0a0a;
+  --color-bg-elevated: #141414;
+  --color-bg-overlay: #1c1c1c;
+  --color-fg: #f4f4f4;
+  --color-fg-muted: #888888;
+  --color-fg-subtle: #5a5a5a;
+  --color-border: #2a2a2a;
+  --color-border-strong: #444444;
+  --color-accent: #00ff88;
+  --color-accent-hover: #3dffa3;
+  --color-warning: #ffcc00;
+  --color-danger: #ff3344;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { font-family: 'JetBrains Mono', 'SF Mono', monospace; font-size: 15px; line-height: 1.45; background: var(--color-bg); color: var(--color-fg); -webkit-font-smoothing: antialiased; }
+header.review-header { position: sticky; top: 0; z-index: 100; background: var(--color-bg); border-bottom: 1px solid var(--color-border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
+.logo { font-weight: 700; font-size: 16px; letter-spacing: 0.02em; text-transform: uppercase; }
+.logo .accent { color: var(--color-accent); }
+.review-meta { color: var(--color-fg-muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+.note { margin-left: auto; color: var(--color-fg-subtle); font-size: 12px; }
+main { max-width: 1280px; margin: 0 auto; padding: 32px 24px 96px; }
+section { margin-bottom: 48px; }
+h2 { font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border); }
+h2::before { content: '## '; color: var(--color-accent); }
+h3 { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-fg-muted); margin-bottom: 12px; }
+.section-intro { color: var(--color-fg-muted); margin-bottom: 24px; max-width: 720px; font-size: 14px; }
+
+.token-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--color-border); }
+.token-card { padding: 20px; border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
+.token-card:nth-child(2n) { border-right: none; }
+.token-card:last-child, .token-card:nth-last-child(2):not(:nth-child(2n)) { border-bottom: none; }
+.token-card.span-2 { grid-column: span 2; border-right: none; }
+
+.swatch-row { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.swatch-line { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
+.swatch-block { width: 24px; height: 24px; border: 1px solid var(--color-border-strong); flex-shrink: 0; }
+.swatch-name { min-width: 140px; }
+.swatch-hex { color: var(--color-fg-muted); }
+
+.track-strip { display: flex; gap: 0; border: 1px solid var(--color-border-strong); margin-top: 8px; }
+.track-cell { flex: 1; height: 32px; position: relative; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: rgba(0,0,0,0.85); letter-spacing: 0.05em; }
+
+.type-block { padding: 6px 0; }
+.type-label { font-size: 10px; color: var(--color-fg-muted); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
+.type-display { font-size: 28px; font-weight: 700; }
+.type-body { font-size: 15px; }
+.type-small { font-size: 13px; color: var(--color-fg-muted); }
+.type-tn { font-feature-settings: 'tnum'; }
+
+.mockup { border: 1px solid var(--color-border-strong); margin-bottom: 0; }
+.mockup-header { background: var(--color-bg); border-bottom: 1px solid var(--color-border); padding: 8px 14px; font-size: 12px; color: var(--color-fg-muted); display: flex; gap: 16px; }
+.mockup-header .ti { color: var(--color-accent); }
+.mockup-body { display: grid; min-height: 600px; }
+
+.qt-layout { grid-template-columns: 220px 1fr 300px; }
+.panel { background: var(--color-bg-elevated); border-right: 1px solid var(--color-border); padding: 12px; }
+.panel.right { border-right: none; border-left: 1px solid var(--color-border); }
+.panel.center { background: var(--color-bg); padding: 12px; overflow: auto; border-right: 1px solid var(--color-border); }
+
+.section-h { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-fg-subtle); padding: 12px 6px 4px; }
+.list-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; color: var(--color-fg-muted); font-size: 13px; cursor: pointer; }
+.list-item:hover { background: var(--color-bg-overlay); color: var(--color-fg); }
+.list-item.active { background: var(--color-bg-overlay); color: var(--color-accent); }
+.list-item.active::before { content: '> '; color: var(--color-accent); }
+.stat { margin-left: auto; font-size: 11px; color: var(--color-fg-subtle); }
+.spacer { flex: 1; }
+
+.toolbar { display: flex; gap: 8px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--color-border); }
+.input { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0; padding: 6px 10px; color: var(--color-fg); font: inherit; font-size: 13px; flex: 1; }
+.input:focus { outline: none; border-color: var(--color-accent); }
+.btn { background: var(--color-bg); border: 1px solid var(--color-border-strong); border-radius: 0; padding: 6px 14px; color: var(--color-fg); font: inherit; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; }
+.btn:hover { background: var(--color-bg-overlay); border-color: var(--color-fg-muted); }
+.btn-primary { background: var(--color-accent); color: #002b18; border-color: var(--color-accent); font-weight: 700; }
+.btn-primary:hover { background: var(--color-accent-hover); }
+.btn::before { content: '['; }
+.btn::after { content: ']'; }
+.btn.no-bracket::before, .btn.no-bracket::after { content: ''; }
+
+.track-list { display: flex; flex-direction: column; gap: 0; }
+.track-row { display: grid; grid-template-columns: 16px 4px 1fr 60px 50px 80px 100px; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--color-border); align-items: center; font-size: 13px; cursor: pointer; }
+.track-row:hover { background: var(--color-bg-elevated); }
+.track-row.selected { background: rgba(0, 255, 136, 0.06); }
+.track-row.selected::before { content: '●'; color: var(--color-accent); position: absolute; }
+.track-cb { width: 14px; height: 14px; border: 1px solid var(--color-border-strong); display: flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+.track-cb.checked { background: var(--color-accent); color: #002b18; }
+.energy-strip { width: 4px; align-self: stretch; height: 28px; }
+.track-name { font-weight: 500; color: var(--color-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.track-name .artist { color: var(--color-fg-muted); font-weight: 400; }
+.cell-mono { color: var(--color-fg-muted); }
+.cell-status { color: var(--color-accent); font-size: 11px; text-transform: uppercase; }
+
+.insp-pad { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.insp-title { font-size: 18px; font-weight: 700; line-height: 1.2; }
+.insp-sub { font-size: 12px; color: var(--color-fg-muted); }
+.field-row { display: grid; grid-template-columns: 80px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--color-border); font-size: 12px; }
+.field-row:last-child { border: none; }
+.field-label { color: var(--color-fg-subtle); text-transform: uppercase; font-size: 10px; letter-spacing: 0.04em; }
+.field-value { color: var(--color-fg); }
+
+.energy-row { display: flex; gap: 2px; }
+.epip { flex: 1; height: 6px; background: var(--color-border); }
+.epip.on { background: var(--color-accent); }
+
+.legend-block { background: var(--color-bg); border: 1px solid var(--color-border); padding: 10px; margin-top: 12px; }
+.legend-h { font-size: 9px; color: var(--color-fg-subtle); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.05em; }
+.legend-line { display: flex; justify-content: space-between; font-size: 11px; padding: 3px 0; }
+.kbd { background: var(--color-bg-overlay); border: 1px solid var(--color-border); padding: 1px 6px; font-size: 10px; color: var(--color-accent); }
+
+.player-bar { background: var(--color-bg-elevated); border-top: 1px solid var(--color-border); padding: 12px 16px; display: grid; grid-template-columns: 220px 1fr 200px; gap: 24px; align-items: center; }
+.player-meta { font-size: 12px; }
+.player-name { color: var(--color-fg); font-weight: 500; }
+.player-art { color: var(--color-fg-muted); }
+.transport { display: flex; align-items: center; gap: 14px; justify-content: center; color: var(--color-fg-muted); font-size: 14px; }
+.tbtn { background: transparent; border: none; color: inherit; cursor: pointer; font: inherit; font-size: 16px; }
+.tbtn.play { background: var(--color-accent); color: #002b18; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.waveform-ascii { width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--color-accent); letter-spacing: -1px; line-height: 1; white-space: nowrap; overflow: hidden; }
+.waveform-ascii .past { color: var(--color-accent); }
+.waveform-ascii .future { color: var(--color-fg-subtle); }
+.player-time { font-size: 12px; color: var(--color-fg-muted); justify-self: end; }
+
+/* Tag Editor */
+.te-layout { grid-template-columns: 260px 1fr 340px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--color-bg); border: 1px solid var(--color-border-strong); padding: 3px 8px; font-size: 11px; }
+.chip.active { background: rgba(0, 255, 136, 0.08); border-color: var(--color-accent); color: var(--color-accent); }
+.chip .x { cursor: pointer; opacity: 0.6; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.te-toolbar { display: flex; gap: 12px; align-items: center; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--color-border); font-size: 12px; }
+.sel-count { color: var(--color-accent); font-weight: 500; }
+
+.field-bulk { background: var(--color-bg); border: 1px solid var(--color-border); padding: 10px; margin-bottom: 6px; }
+.field-bulk-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.toggle-cb { font-size: 11px; color: var(--color-fg-muted); }
+.toggle-cb input { display: none; }
+.toggle-cb::before { content: '[X]'; color: var(--color-accent); margin-right: 4px; }
+.toggle-cb.off::before { content: '[ ]'; color: var(--color-fg-subtle); }
+.value-state { font-size: 10px; padding: 2px 6px; background: var(--color-bg-overlay); color: var(--color-fg-muted); display: inline-block; margin-top: 4px; }
+.value-state.multi { background: rgba(255, 204, 0, 0.1); color: var(--color-warning); }
+.value-state.empty { color: var(--color-fg-subtle); }
+
+/* Settings */
+.set-layout { grid-template-columns: 220px 1fr; }
+.set-content { background: var(--color-bg); padding: 24px; }
+.set-section-title { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.set-section-title::before { content: '## '; color: var(--color-accent); }
+.set-section-desc { color: var(--color-fg-muted); font-size: 13px; margin-bottom: 16px; }
+.set-row { display: grid; grid-template-columns: 200px 1fr; gap: 24px; padding: 14px 0; border-bottom: 1px dashed var(--color-border); align-items: center; }
+.set-row:last-child { border: none; }
+.set-row-label { font-size: 13px; }
+.set-row-help { font-size: 11px; color: var(--color-fg-muted); margin-top: 2px; }
+
+.notes { background: var(--color-bg-elevated); border: 1px solid var(--color-border); padding: 20px; color: var(--color-fg-muted); font-size: 13px; line-height: 1.7; }
+.notes h3 { color: var(--color-fg); font-size: 14px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.notes ul { padding-left: 20px; }
+.notes li { margin-bottom: 6px; }
+.notes strong { color: var(--color-accent); font-weight: 500; }
+</style>
+</head>
+<body>
+<header class="review-header">
+  <span class="logo">ONE<span class="accent">TAGGER</span></span>
+  <span class="review-meta">VARIANT 02 / STUDIO BRUTALIST</span>
+  <span class="note">no light mode · single typeface · no shadows · no rounded corners</span>
+</header>
+
+<main>
+
+<section>
+  <h2>Tokens</h2>
+  <p class="section-intro">Brutalist thesis: function exposed. One typeface (JetBrains Mono). One accent color (phosphor green). Hard rectangles. No decoration. The visual equivalent of a power tool that respects your time so much it refuses to entertain you.</p>
+  <div class="token-grid">
+    <div class="token-card">
+      <h3>// Surfaces</h3>
+      <div class="swatch-row">
+        <div class="swatch-line"><div class="swatch-block" style="background:#0a0a0a"></div><span class="swatch-name">--color-bg</span><span class="swatch-hex">#0a0a0a</span></div>
+        <div class="swatch-line"><div class="swatch-block" style="background:#141414"></div><span class="swatch-name">--color-bg-elevated</span><span class="swatch-hex">#141414</span></div>
+        <div class="swatch-line"><div class="swatch-block" style="background:#1c1c1c"></div><span class="swatch-name">--color-bg-overlay</span><span class="swatch-hex">#1c1c1c</span></div>
+        <div class="swatch-line"><div class="swatch-block" style="background:#f4f4f4"></div><span class="swatch-name">--color-fg</span><span class="swatch-hex">#f4f4f4</span></div>
+        <div class="swatch-line"><div class="swatch-block" style="background:#888888"></div><span class="swatch-name">--color-fg-muted</span><span class="swatch-hex">#888888</span></div>
+      </div>
+    </div>
+    <div class="token-card">
+      <h3>// Accent + status</h3>
+      <div class="swatch-row">
+        <div class="swatch-line"><div class="swatch-block" style="background:#00ff88"></div><span class="swatch-name">--color-accent</span><span class="swatch-hex">#00ff88 (phosphor)</span></div>
+        <div class="swatch-line"><div class="swatch-block" style="background:#ffcc00"></div><span class="swatch-name">--color-warning</span><span class="swatch-hex">#ffcc00</span></div>
+        <div class="swatch-line"><div class="swatch-block" style="background:#ff3344"></div><span class="swatch-name">--color-danger</span><span class="swatch-hex">#ff3344</span></div>
+      </div>
+      <h3 style="margin-top: 16px;">// Track-color (desat 70%)</h3>
+      <div class="track-strip">
+        <div class="track-cell" style="background:#cc6b35">ORG</div>
+        <div class="track-cell" style="background:#ccaa27">AMB</div>
+        <div class="track-cell" style="background:#a4cc32">LIM</div>
+        <div class="track-cell" style="background:#3dcc6e">MNT</div>
+        <div class="track-cell" style="background:#1d9b91">CYN</div>
+        <div class="track-cell" style="background:#3893b8">SKY</div>
+        <div class="track-cell" style="background:#7d70b0">VLT</div>
+        <div class="track-cell" style="background:#bb6090">ROS</div>
+      </div>
+    </div>
+    <div class="token-card span-2">
+      <h3>// Typography — JetBrains Mono only</h3>
+      <div class="type-block"><div class="type-label">DISPLAY 700 / 28PX</div><div class="type-display">ONETAGGER · QUICK TAG</div></div>
+      <div class="type-block"><div class="type-label">BODY 400 / 15PX</div><div class="type-body">The quick brown fox jumps over the lazy dog. tabular: 1234567890</div></div>
+      <div class="type-block"><div class="type-label">SMALL 400 / 13PX</div><div class="type-small">soulful house mix · 124.0 BPM · 7A · reviewed 2026-05</div></div>
+      <div class="type-block"><div class="type-label">MONO INLINE</div><div class="type-body type-tn">TXXX:INITIALKEY · /Music/Library/Sun.flac · 4:32</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Quick Tag</h2>
+  <p class="section-intro">Sidebar replaces top tabs. Track list (no tile cards — pure rows, like a debugger). Inspector shows raw frame data. Player is ASCII waveform. Every word is the font you came for, in the size you can read fast.</p>
+  <div class="mockup">
+    <div class="mockup-header"><span class="ti">~/onetagger</span><span>quick-tag</span><span>/Music/Library/2026-Q2</span><span style="margin-left: auto;">238 files · 3 changes</span></div>
+    <div class="mockup-body qt-layout">
+      <aside class="panel">
+        <div class="section-h">// library</div>
+        <div class="list-item">recents <span class="stat">12</span></div>
+        <div class="list-item">pinned <span class="stat">4</span></div>
+        <div class="section-h">// tools</div>
+        <div class="list-item active">quick-tag <span class="stat">238</span></div>
+        <div class="list-item">tag-editor</div>
+        <div class="list-item">auto-tag</div>
+        <div class="list-item">audio-features</div>
+        <div class="list-item">renamer</div>
+        <div class="spacer"></div>
+        <div class="list-item">help</div>
+        <div class="list-item">settings</div>
+      </aside>
+      <div class="panel center">
+        <div class="toolbar">
+          <input class="input" value="genre = 'tech house' AND bpm > 120">
+          <button class="btn">Sort: BPM</button>
+          <button class="btn">R</button>
+          <button class="btn btn-primary">Save 3</button>
+        </div>
+        <div class="track-list">
+          <div class="track-row selected"><div class="track-cb checked">x</div><div class="energy-strip" style="background:#cc6b35"></div><div class="track-name">Sunbeam Nights · <span class="artist">Aurora Aerial</span></div><div class="cell-mono">126.0</div><div class="cell-mono">7A</div><div class="cell-mono">tech house</div><div class="cell-status">[CHANGED]</div></div>
+          <div class="track-row"><div class="track-cb"></div><div class="energy-strip" style="background:#3dcc6e"></div><div class="track-name">Glass Cathedral · <span class="artist">Lyra Pavlova</span></div><div class="cell-mono">122.0</div><div class="cell-mono">5A</div><div class="cell-mono">tech house</div><div class="cell-status" style="color: var(--color-fg-subtle);">[OK]</div></div>
+          <div class="track-row selected"><div class="track-cb checked">x</div><div class="energy-strip" style="background:#1d9b91"></div><div class="track-name">Midnight Revolt · <span class="artist">Komorebi</span></div><div class="cell-mono">128.0</div><div class="cell-mono">3A</div><div class="cell-mono">tech house</div><div class="cell-status">[CHANGED]</div></div>
+          <div class="track-row"><div class="track-cb"></div><div class="energy-strip" style="background:#7d70b0"></div><div class="track-name">Polar Drift Sequence II · <span class="artist">Hex Volga &amp; Yellowtail</span></div><div class="cell-mono">130.0</div><div class="cell-mono">11A</div><div class="cell-mono">tech house</div><div class="cell-status" style="color: var(--color-fg-subtle);">[OK]</div></div>
+          <div class="track-row selected"><div class="track-cb checked">x</div><div class="energy-strip" style="background:#bb6090"></div><div class="track-name">Saturn's Receipt · <span class="artist">Onyx Field</span></div><div class="cell-mono">124.0</div><div class="cell-mono">9B</div><div class="cell-mono">tech house</div><div class="cell-status">[CHANGED]</div></div>
+          <div class="track-row"><div class="track-cb"></div><div class="energy-strip" style="background:#3893b8"></div><div class="track-name">Lichen Light · <span class="artist">Cassiopeia Loop</span></div><div class="cell-mono">120.0</div><div class="cell-mono">2A</div><div class="cell-mono">tech house</div><div class="cell-status" style="color: var(--color-fg-subtle);">[OK]</div></div>
+          <div class="track-row"><div class="track-cb"></div><div class="energy-strip" style="background:#ccaa27"></div><div class="track-name">Petrichor · <span class="artist">Aurora Aerial</span></div><div class="cell-mono">125.5</div><div class="cell-mono">8A</div><div class="cell-mono">tech house</div><div class="cell-status" style="color: var(--color-fg-subtle);">[OK]</div></div>
+          <div class="track-row"><div class="track-cb"></div><div class="energy-strip" style="background:#a4cc32"></div><div class="track-name">Hollow Pulse · <span class="artist">Vela Quartet</span></div><div class="cell-mono">127.0</div><div class="cell-mono">6A</div><div class="cell-mono">tech house</div><div class="cell-status" style="color: var(--color-fg-subtle);">[OK]</div></div>
+        </div>
+      </div>
+      <aside class="panel right">
+        <div class="insp-pad">
+          <div>
+            <div class="insp-title">SATURN'S RECEIPT</div>
+            <div class="insp-sub">onyx field / sundial records / 2025</div>
+          </div>
+          <div>
+            <div class="field-label" style="margin-bottom: 4px;">// energy</div>
+            <div class="energy-row"><div class="epip on"></div><div class="epip on"></div><div class="epip on"></div><div class="epip on"></div><div class="epip"></div></div>
+          </div>
+          <div class="field-row"><span class="field-label">mood</span><span class="field-value">dreamy / hypnotic</span></div>
+          <div class="field-row"><span class="field-label">genre</span><span class="field-value">tech-house</span></div>
+          <div class="field-row"><span class="field-label">bpm/key</span><span class="field-value">124.0 / 9B</span></div>
+          <div class="field-row"><span class="field-label">file</span><span class="field-value" style="font-size: 11px;">/Music/.../Saturn.flac</span></div>
+          <div class="field-row"><span class="field-label">size</span><span class="field-value">38.4 MB</span></div>
+
+          <div class="legend-block">
+            <div class="legend-h">// quick bindings</div>
+            <div class="legend-line"><span>energy 1-5</span><span class="kbd">1 2 3 4 5</span></div>
+            <div class="legend-line"><span>mood: dreamy</span><span class="kbd">D</span></div>
+            <div class="legend-line"><span>mood: driving</span><span class="kbd">F</span></div>
+            <div class="legend-line"><span>genre: tech</span><span class="kbd">^T</span></div>
+            <div class="legend-line"><span>skip</span><span class="kbd">→</span></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <div class="player-bar">
+      <div class="player-meta"><div class="player-name">SATURN'S RECEIPT</div><div class="player-art">onyx field</div></div>
+      <div>
+        <div class="transport"><button class="tbtn">⏮</button><button class="tbtn play">▶</button><button class="tbtn">⏭</button></div>
+        <div class="waveform-ascii"><span class="past">▃▅▇▆▄▅▇█▆▄▃▅</span><span class="future">▆▄▅▃▄▆▅▇▆▄▃▅▆▇▅▄▃▄▆▅</span></div>
+      </div>
+      <div class="player-time">02:14 / 04:32</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Tag Editor (bulk)</h2>
+  <p class="section-intro">Three columns. Filters as bracketed chips. Selection is a checkbox-row table — pure data. Editor pane: each field has a [X] APPLY-ALL toggle. Multi-value state is text, not color.</p>
+  <div class="mockup">
+    <div class="mockup-header"><span class="ti">~/onetagger</span><span>tag-editor</span><span>/Music/Library/2026-Q2</span><span style="margin-left: auto;">12 of 47 selected</span></div>
+    <div class="mockup-body te-layout">
+      <aside class="panel">
+        <div class="section-h">// filter</div>
+        <input class="input" placeholder="add filter…" style="margin-bottom: 8px;">
+        <div class="chips">
+          <span class="chip active">genre = "tech-house" <span class="x">x</span></span>
+          <span class="chip active">bpm 120-130 <span class="x">x</span></span>
+          <span class="chip">has TXXX:INITIALKEY <span class="x">x</span></span>
+        </div>
+        <div class="section-h">// saved</div>
+        <div class="list-item">q2-tech-reviews</div>
+        <div class="list-item">missing-bpm</div>
+        <div class="list-item">energy-4-plus</div>
+        <div class="list-item">unreviewed</div>
+      </aside>
+      <div class="panel center">
+        <div class="te-toolbar">
+          <span class="sel-count">[12 of 47 selected]</span>
+          <button class="btn">Select all</button>
+          <button class="btn">Clear</button>
+          <span style="flex:1"></span>
+          <button class="btn">Sort: title ↑</button>
+        </div>
+        <div class="track-list">
+          <div class="track-row selected"><div class="track-cb checked">x</div><div class="energy-strip" style="background:#cc6b35"></div><div class="track-name">Sunbeam Nights · <span class="artist">Aurora Aerial</span></div><div class="cell-mono">126.0</div><div class="cell-mono">7A</div><div class="cell-mono">2025</div><div class="cell-status" style="color: var(--color-fg-subtle);">[OK]</div></div>
+          <div class="track-row selected"><div class="track-cb checked">x</div><div class="energy-strip" style="background:#1d9b91"></div><div class="track-name">Midnight Revolt · <span class="artist">Komorebi</span></div><div class="cell-mono">128.0</div><div class="cell-mono">3A</div><div class="cell-mono">2025</div><div class="cell-status" style="color: var(--color-fg-subtle);">[OK]</div></div>
+          <div class="track-row selected"><div class="track-cb checked">x</div><div class="energy-strip" style="background:#bb6090"></div><div class="track-name">Saturn's Receipt · <span class="artist">Onyx Field</span></div><div class="cell-mono">124.0</div><div class="cell-mono">9B</div><div class="cell-mono">2025</div><div class="cell-status" style="color: var(--color-fg-subtle);">[OK]</div></div>
+          <div class="track-row"><div class="track-cb"></div><div class="energy-strip" style="background:#3dcc6e"></div><div class="track-name">Glass Cathedral · <span class="artist">Lyra Pavlova</span></div><div class="cell-mono">122.0</div><div class="cell-mono">5A</div><div class="cell-mono">2024</div><div class="cell-status" style="color: var(--color-fg-subtle);">[OK]</div></div>
+          <div class="track-row selected"><div class="track-cb checked">x</div><div class="energy-strip" style="background:#7d70b0"></div><div class="track-name">Polar Drift II · <span class="artist">Hex Volga</span></div><div class="cell-mono">130.0</div><div class="cell-mono">11A</div><div class="cell-mono">2026</div><div class="cell-status" style="color: var(--color-fg-subtle);">[OK]</div></div>
+          <div class="track-row"><div class="track-cb"></div><div class="energy-strip" style="background:#3893b8"></div><div class="track-name">Lichen Light · <span class="artist">Cassiopeia Loop</span></div><div class="cell-mono">120.0</div><div class="cell-mono">2A</div><div class="cell-mono">2024</div><div class="cell-status" style="color: var(--color-fg-subtle);">[OK]</div></div>
+          <div class="track-row selected"><div class="track-cb checked">x</div><div class="energy-strip" style="background:#ccaa27"></div><div class="track-name">Petrichor · <span class="artist">Aurora Aerial</span></div><div class="cell-mono">125.5</div><div class="cell-mono">8A</div><div class="cell-mono">2025</div><div class="cell-status" style="color: var(--color-fg-subtle);">[OK]</div></div>
+        </div>
+      </div>
+      <aside class="panel right">
+        <div class="insp-pad" style="padding: 0;">
+          <div style="display: flex; gap: 4px; margin-bottom: 12px;">
+            <span class="chip active">common</span><span class="chip">custom</span><span class="chip">raw</span>
+          </div>
+          <div class="field-bulk">
+            <div class="field-bulk-head"><span class="field-label">// genre</span><span class="toggle-cb">apply all</span></div>
+            <input class="input" value="tech-house" style="width: 100%;">
+            <span class="value-state">[ALL SAME]</span>
+          </div>
+          <div class="field-bulk">
+            <div class="field-bulk-head"><span class="field-label">// year</span><span class="toggle-cb">apply all</span></div>
+            <input class="input" placeholder="multiple — type to overwrite" style="width: 100%;">
+            <span class="value-state multi">[MULTI: 2024×1, 2025×4, 2026×1]</span>
+          </div>
+          <div class="field-bulk">
+            <div class="field-bulk-head"><span class="field-label">// comment</span><span class="toggle-cb">apply all</span></div>
+            <input class="input" value="reviewed 2026-05" style="width: 100%;">
+            <span class="value-state empty">[EMPTY IN ALL]</span>
+          </div>
+          <div class="field-bulk">
+            <div class="field-bulk-head"><span class="field-label">// custom rename</span><span class="toggle-cb off">apply all</span></div>
+            <input class="input" value="MYFRAME → MOOD_NEW" style="width: 100%;">
+            <span class="value-state">[23 FILES MATCH]</span>
+          </div>
+          <div style="margin-top: 16px; display: flex; gap: 6px;">
+            <button class="btn" style="flex:1">Cancel</button>
+            <button class="btn btn-primary" style="flex:2">Save → 6 files</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Settings — route, not modal</h2>
+  <p class="section-intro">Sidebar of categories. Right pane scales with the window. Each category is its own component (not 1000-line god-component).</p>
+  <div class="mockup">
+    <div class="mockup-header"><span class="ti">~/onetagger</span><span>settings</span><span style="margin-left: auto;">⌘+, to open · ESC to close</span></div>
+    <div class="mockup-body set-layout">
+      <aside class="panel">
+        <div class="section-h">// categories</div>
+        <div class="list-item">library-paths</div>
+        <div class="list-item active">quick-tag</div>
+        <div class="list-item">custom-tags</div>
+        <div class="list-item">platforms</div>
+        <div class="list-item">appearance</div>
+        <div class="list-item">keybindings</div>
+        <div class="list-item">advanced</div>
+      </aside>
+      <div class="set-content">
+        <div class="set-section-title">QUICK TAG</div>
+        <div class="set-section-desc">// configure energy / mood / genre tagging. changes apply on next file load.</div>
+        <div class="set-row">
+          <div><div class="set-row-label">energy 1-5 keybinds</div><div class="set-row-help">default: number row 1-5</div></div>
+          <div style="display: flex; gap: 6px;">
+            <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span><span class="kbd">4</span><span class="kbd">5</span>
+            <button class="btn" style="margin-left: auto;">Edit</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <div><div class="set-row-label">energy tag type</div><div class="set-row-help">rating → POPM frame · symbol → custom field</div></div>
+          <div style="display: flex; gap: 6px;"><button class="btn btn-primary">RATING</button><button class="btn">SYMBOL</button></div>
+        </div>
+        <div class="set-row">
+          <div><div class="set-row-label">mood values</div><div class="set-row-help">drag to reorder · click to edit</div></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+            <span class="chip">dreamy <span class="kbd">D</span></span>
+            <span class="chip">driving <span class="kbd">F</span></span>
+            <span class="chip">hypnotic <span class="kbd">G</span></span>
+            <span class="chip">dark <span class="kbd">H</span></span>
+            <button class="btn">+ ADD</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <div><div class="set-row-label">mood frame</div><div class="set-row-help">where to write per format</div></div>
+          <input class="input" value="TXXX:MOOD" style="max-width: 240px;">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="notes">
+    <h3>// what to evaluate</h3>
+    <ul>
+      <li><strong>density</strong> — does the tighter row layout (vs V1's tile grid) feel more efficient or just cramped?</li>
+      <li><strong>single-typeface</strong> — does mono-only read as "power tool" or "I can't read this for 4 hours"?</li>
+      <li><strong>no decoration</strong> — do hard rectangles + 1px borders feel honest or cold?</li>
+      <li><strong>phosphor green accent</strong> — iconic terminal color. Brand-pairing concern: replaces OneTagger's teal.</li>
+      <li><strong>ASCII waveform</strong> — pulls the brutalist thesis through to the player. Does it feel coherent or affected?</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+</body>
+</html>

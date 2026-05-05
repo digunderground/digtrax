@@ -1,17 +1,17 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/onetagger",
-    "crates/onetagger-ui",
-    "crates/onetagger-cli",
-    "crates/onetagger-tag",
-    "crates/onetagger-shared",
-    "crates/onetagger-player",
-    "crates/onetagger-tagger",
-    "crates/onetagger-renamer",
-    "crates/onetagger-autotag",
-    "crates/onetagger-playlist",
-    "crates/onetagger-platforms"
+    "crates/digtrax",
+    "crates/digtrax-ui",
+    "crates/digtrax-cli",
+    "crates/digtrax-tag",
+    "crates/digtrax-shared",
+    "crates/digtrax-player",
+    "crates/digtrax-tagger",
+    "crates/digtrax-renamer",
+    "crates/digtrax-autotag",
+    "crates/digtrax-playlist",
+    "crates/digtrax-platforms"
 ]
 
 # Workaround for MacOS

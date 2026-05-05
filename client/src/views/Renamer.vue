@@ -1,158 +1,194 @@
 <template>
-<div class='text-center'>
+<div class='renamer-page'>
 
-    <div class='q-py-lg' v-if='!$1t.lock.value.locked'>
-        <div style='max-width: 800px; margin: auto;'>
-            <!-- Input and output folders -->
-            <div class='text-subtitle2 text-bold text-primary'>SELECT INPUT / OUTPUT</div>
-            <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or<span class='keybind-icon text-caption text-bold'>CLICK</span> the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
-        
-            <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
-                <q-input filled class='col-10' label='Input folder' v-model='config.path' @update:model-value="updatePreview()">
+    <!-- Header strip: title + status hint + Start (matches Auto Tag idiom). -->
+    <div class='renamer-header row items-center q-px-lg q-py-md' v-if='!$1t.lock.value.locked'>
+        <div class='col'>
+            <div class='text-h6 text-bold' style='letter-spacing: 0.02em;'>Renamer</div>
+            <div class='text-caption text-grey-5'>
+                Pick an input folder and a filename template, preview, then run.
+                <span v-if='!startable' class='text-warning q-ml-xs'>{{ blockerHint }}</span>
+            </div>
+        </div>
+        <q-btn
+            push dense
+            icon='mdi-play'
+            color='primary' text-color='black'
+            class='rounded-borders q-px-md text-weight-medium'
+            label='Start'
+            :disable='!startable'
+            @click='start(false)'
+        />
+    </div>
+
+    <!-- Loading overlay while a run is in flight. -->
+    <div v-if='$1t.lock.value.locked' class='renamer-loading'>
+        <q-circular-progress indeterminate size='64px' color='primary'></q-circular-progress>
+    </div>
+
+    <div v-if='!$1t.lock.value.locked' class='renamer-grid q-px-lg q-pb-xl'>
+
+        <!-- Input + output -->
+        <section class='dt-card'>
+            <header class='dt-card-header'>
+                <q-icon name='mdi-folder-multiple-outline' size='18px' class='dt-card-icon' />
+                <div class='col'>
+                    <div class='dt-card-title'>Input &amp; output</div>
+                    <div class='dt-card-subtitle'>Drag &amp; drop, paste a path, or browse with the folder icon. Leave Output empty to rename in place.</div>
+                </div>
+            </header>
+            <div class='dt-card-body'>
+                <q-input
+                    filled dense
+                    label='Input folder'
+                    v-model='config.path'
+                    @update:model-value='updatePreview()'
+                    class='q-mb-sm'
+                >
                     <template v-slot:append>
-                        <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(false)'></q-btn>
+                        <q-btn round dense flat icon='mdi-open-in-app' @click='browse(false)' />
+                    </template>
+                </q-input>
+                <q-input
+                    filled dense
+                    label='Output folder (optional — same as input if blank)'
+                    v-model='config.outDir'
+                    @update:model-value='updatePreview()'
+                >
+                    <template v-slot:append>
+                        <q-btn round dense flat icon='mdi-open-in-app' @click='browse(true)' />
                     </template>
                 </q-input>
             </div>
-    
-            <div class='q-pt-lg row justify-center input' style='max-width: 725px; margin: auto;'>
-                <q-input filled class='col-10' label='Output folder (leave empty for same as input)' v-model='config.outDir' @update:model-value="updatePreview()">
-                    <template v-slot:append>
-                        <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(true)'></q-btn>
-                    </template>
-                </q-input>                
-            </div>
-            <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 41px;"' inset color="dark"/>
-    
-            <!-- Template -->            
-            <div class='text-subtitle2 text-bold text-primary custom-margin'>TEMPLATE</div>
-                <div class='text-subtitle2 text-grey-6'>Enter dynamic content and/or static content. More info?<span class='keybind-icon q-px-sm text-caption text-bold'>CLICK</span> <span class="text-weight-bold text-caption"><q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP</span> on the right</div>
-            
-            <div style='margin-top: -25px;'>
-                <div class='fake-cursor' :style='cursorStyle'>|</div>
-                <div class='template-text'>
-                    <span v-if='config.template' v-html='highlighted'></span>
-                    <span v-if='!config.template' class='template-input-placeholder'>Filename template</span>
+        </section>
+
+        <!-- Template editor + suggestions popup. The fake-cursor / overlay-text
+             technique is preserved verbatim — it's load-bearing for the syntax
+             highlight, and rewriting it is out of scope for this turn. -->
+        <section class='dt-card'>
+            <header class='dt-card-header'>
+                <q-icon name='mdi-code-tags' size='18px' class='dt-card-icon' />
+                <div class='col'>
+                    <div class='dt-card-title'>Template</div>
+                    <div class='dt-card-subtitle'>Mix dynamic placeholders (e.g. <span class='monospace text-accent'>%artist% - %title%</span>) and static text. <q-icon name='mdi-help-circle-outline' size='14px' class='q-ml-xs' /> for the full reference.</div>
                 </div>
-                <input
-                    class='template-input monospace' 
-                    spellcheck="false"
-                    ref='templateInputElem'
-                    @blur='onBlur'
-                    @focus='onSelectionChange'
-                    @selectionchange='onSelectionChange'
-                    @keyup='onSelectionChange'
-                    @keydown='onKeyDown'
-                    @input='(e) => templateInput(e as InputEvent)'
-                    @click='onSelectionChange'
-                    @paste='onPaste'
-                >
-            </div>
-    
-            <!-- Autocomplete / suggestions -->
-            <div v-if='suggestions.length > 0'>
-                <div class='suggestions-box' :style='suggestionsStyle'>
-                    <!-- Suggestions -->
-                    <div style='width: 40%'>
-                        <div v-for='(suggestion, i) in suggestions' :key="'s'+i" class='q-mr-sm q-pa-xs' :class='{"help-suggestion-selected": i == suggestionIndex}'>
-                            <!-- icon -->
-                            <q-icon name='mdi-variable' class='q-mb-xs' v-if='suggestion.kind == "variable"'></q-icon>
-                            <q-icon name='mdi-information-outline' class='q-mb-xs' v-if='suggestion.kind == "property"'></q-icon>
-                            <q-icon name='mdi-function' class='q-mb-xs' v-if='suggestion.kind == "function"'></q-icon>
-    
-                            <!-- name -->
-                            <span class='q-ml-sm' :class='{"text-primary": i == suggestionIndex}'>
-                                <RenamerTokenName :token='suggestion' :params='false'></RenamerTokenName>
-                            </span>
-    
-                            <!-- selected icon -->
-                            <span v-if='i == suggestionIndex' style='float: right;'>
-                                <q-icon name='mdi-chevron-right' class='q-mb-xs' color='primary'></q-icon>
-                            </span>
-                        </div>
+            </header>
+            <div class='dt-card-body'>
+                <div class='renamer-editor'>
+                    <div class='fake-cursor' :style='cursorStyle'>|</div>
+                    <div class='template-text'>
+                        <span v-if='config.template' v-html='highlighted'></span>
+                        <span v-if='!config.template' class='template-input-placeholder'>Filename template</span>
                     </div>
-                    <!-- Help -->
-                    <div style='width: 60%'>
-                        <div v-if='suggestions[suggestionIndex]'>
-                            <!-- Function info -->
-                            <div v-if='suggestions[suggestionIndex].kind == "function"' class='q-mb-sm suggestion-help-function'>
-                                <RenamerTokenName :token='suggestions[suggestionIndex]'></RenamerTokenName>
-                                <br>
+                    <input
+                        class='template-input monospace'
+                        spellcheck='false'
+                        ref='templateInputElem'
+                        @blur='onBlur'
+                        @focus='onSelectionChange'
+                        @selectionchange='onSelectionChange'
+                        @keyup='onSelectionChange'
+                        @keydown='onKeyDown'
+                        @input='(e) => templateInput(e as InputEvent)'
+                        @click='onSelectionChange'
+                        @paste='onPaste'
+                    >
+                </div>
+
+                <div v-if='suggestions.length > 0'>
+                    <div class='suggestions-box' :style='suggestionsStyle'>
+                        <div style='width: 40%'>
+                            <div
+                                v-for='(suggestion, i) in suggestions'
+                                :key="'s'+i"
+                                class='q-mr-sm q-pa-xs'
+                                :class='{"help-suggestion-selected": i == suggestionIndex}'
+                            >
+                                <q-icon name='mdi-variable' class='q-mb-xs' v-if='suggestion.kind == "variable"'></q-icon>
+                                <q-icon name='mdi-information-outline' class='q-mb-xs' v-if='suggestion.kind == "property"'></q-icon>
+                                <q-icon name='mdi-function' class='q-mb-xs' v-if='suggestion.kind == "function"'></q-icon>
+                                <span class='q-ml-sm' :class='{"text-primary": i == suggestionIndex}'>
+                                    <RenamerTokenName :token='suggestion' :params='false'></RenamerTokenName>
+                                </span>
+                                <span v-if='i == suggestionIndex' style='float: right;'>
+                                    <q-icon name='mdi-chevron-right' class='q-mb-xs' color='primary'></q-icon>
+                                </span>
                             </div>
-    
-                            <!-- Actual suggestion -->
-                            <div v-html='suggestions[suggestionIndex].doc'></div>
+                        </div>
+                        <div style='width: 60%'>
+                            <div v-if='suggestions[suggestionIndex]'>
+                                <div v-if='suggestions[suggestionIndex].kind == "function"' class='q-mb-sm suggestion-help-function'>
+                                    <RenamerTokenName :token='suggestions[suggestionIndex]'></RenamerTokenName>
+                                    <br>
+                                </div>
+                                <div v-html='suggestions[suggestionIndex].doc'></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        
-
-        <!-- Preview -->              
-        <div class='full-width'>            
-            <div class='q-mt-md q-mb-sm text-subtitle2 text-bold text-primary custom-margin'>PREVIEW</div>
-            <div v-for='(file, i) in preview' :key='"prev"+i'>
-                <div class='text-caption monospace text-grey-5 q-my-md'>{{file[1]}}</div>
-                
+        <!-- Preview list -->
+        <section class='dt-card' v-if='preview.length > 0'>
+            <header class='dt-card-header'>
+                <q-icon name='mdi-eye-outline' size='18px' class='dt-card-icon' />
+                <div class='col'>
+                    <div class='dt-card-title'>Preview</div>
+                    <div class='dt-card-subtitle'>What the next run will write — sample of resolved filenames.</div>
+                </div>
+                <span class='renamer-preview-count'>{{ preview.length }}</span>
+            </header>
+            <div class='dt-card-body renamer-preview'>
+                <div v-for='(file, i) in preview' :key='"prev"+i' class='renamer-preview-row monospace'>
+                    {{ file[1] }}
+                </div>
             </div>
-        </div>
-        
-        
+        </section>
+
         <!-- Options -->
-        <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 34px;"' inset color="dark"/>
-        
-        <div class='text-subtitle2 text-bold text-primary custom-margin' style='margin-bottom: 8px;'>OPTIONS</div>
-        
-        <div class='column flex-center'>
-            <q-toggle left-label class='justify-between' style='width: 240px;' label='Copy files instead of moving' v-model='config.copy'></q-toggle>
-            <q-toggle left-label class='justify-between' style='width: 240px;' label='Overwrite existing target files' v-model='config.overwrite'></q-toggle>
-            <q-toggle left-label class='justify-between' style='width: 240px;' label='Include subfolders' v-model='config.subfolders'></q-toggle>
-            <q-toggle left-label class='justify-between' style='width: 240px;' label='Keep original subfolders' v-model='config.keepSubfolders'></q-toggle>
-        </div>
-        
-        <div class='row justify-center q-my-md'>
-                <q-input
-                    v-model='config.separator'
-                    label='Separator'
-                    filled
-                    style='max-width: 200px;'
-                ></q-input>
+        <section class='dt-card'>
+            <header class='dt-card-header'>
+                <q-icon name='mdi-cog-outline' size='18px' class='dt-card-icon' />
+                <div class='col'>
+                    <div class='dt-card-title'>Options</div>
+                    <div class='dt-card-subtitle'>Move vs. copy, overwrite policy, recursion, separator for joined values.</div>
+                </div>
+            </header>
+            <div class='dt-card-body renamer-options'>
+                <div class='renamer-options-toggles'>
+                    <q-toggle left-label class='justify-between' label='Copy files instead of moving' v-model='config.copy'></q-toggle>
+                    <q-toggle left-label class='justify-between' label='Overwrite existing target files' v-model='config.overwrite'></q-toggle>
+                    <q-toggle left-label class='justify-between' label='Include subfolders' v-model='config.subfolders'></q-toggle>
+                    <q-toggle left-label class='justify-between' label='Keep original subfolders' v-model='config.keepSubfolders'></q-toggle>
+                </div>
+                <div class='renamer-options-sep q-mt-md'>
+                    <q-input
+                        v-model='config.separator'
+                        label='Multi-value separator'
+                        filled dense
+                        style='max-width: 240px;'
+                    />
+                </div>
             </div>
-
-
+        </section>
 
     </div>
 
-    <!-- Start FAB -->
-    <q-page-sticky position='bottom-right' :offset='[36, 34]'>
-        <div class='row'>
-            <div>
-                <q-btn 
-                    fab 
-                    push
-                    icon='mdi-play' 
-                    color='primary'
-                    :disabled='!startable'
-                    @click='start(false)'>
-        
-                    <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                        <span class='text-weight-medium'>START</span>
-                    </q-tooltip>
-                </q-btn>
-            </div>
-        </div>
+    <!-- Floating Start FAB — stays for parity when scrolled past header. -->
+    <q-page-sticky position='bottom-right' :offset='[36, 32]' v-if='!$1t.lock.value.locked'>
+        <q-btn
+            fab push
+            icon='mdi-play'
+            color='primary'
+            :disable='!startable'
+            @click='start(false)'
+        >
+            <q-tooltip anchor='top middle' self='bottom middle' :offset='[10, 10]'>Start renaming</q-tooltip>
+        </q-btn>
     </q-page-sticky>
 
-    <!-- Loading -->
-    <div v-if='$1t.lock.value.locked'>
-        <div style='margin-top: 45vh;'>
-            <q-circular-progress indeterminate size='64px' color='primary'></q-circular-progress>
-        </div>
-    </div>
-
-    <!-- For cursor calculations -->
+    <!-- Hidden span used to measure character width for cursor positioning. -->
     <div>
         <span style='visibility: hidden; font-size: 16px;' class='monospace' ref='textWidthRef'>abcdefghijklmnopqrstuvwxyz0123456789</span>
     </div>
@@ -163,7 +199,7 @@
 <script lang='ts' setup>
 import RenamerTokenName from '../components/RenamerTokenName.vue';
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue';
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 import { useQuasar } from 'quasar';
 
 class RenamerConfig {
@@ -438,6 +474,12 @@ onUnmounted(() => {
 });
 
 const startable = computed(() => config.value.path && config.value.template);
+const blockerHint = computed(() => {
+    if (!config.value.path && !config.value.template) return '— pick an input folder and write a template';
+    if (!config.value.path) return '— pick an input folder';
+    if (!config.value.template) return '— write a template';
+    return '';
+});
 const cursorStyle = computed(() => `margin-left: ${12 + cursor.value * charWidth.value}px`);
 const suggestionsStyle = computed(() => {
     let top = `margin-top: -${suggestionsTop}px;`;
@@ -458,46 +500,83 @@ watch(() => config.value.template, () => {
 </script>
 
 <style lang='scss'>
+.renamer-page {
+    background: var(--color-bg);
+    min-height: 100%;
+}
+.renamer-header {
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-elevated);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    backdrop-filter: saturate(140%) blur(8px);
+}
+.renamer-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding-top: 18px;
+    max-width: 1080px;
+    margin: 0 auto;
+}
+.renamer-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 160px);
+}
+
+/* Template editor — preserve the fake-cursor + overlay-text mechanic. The
+   .template-input is invisible (transparent text) and the .template-text
+   layer renders syntax-highlighted HTML on top of it. */
+.renamer-editor {
+    position: relative;
+    margin-top: 4px;
+}
 .template-input {
     text-align: left;
-    background-color: #99999910;
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--color-border);
     padding-left: 12px;
     padding-right: 12px;
     padding-top: 20px;
     padding-bottom: 20px;
     outline: none !important;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-size: 16px;
-    width: 800px;
-    border: none;
-    color: #ffffff00;
+    width: 100%;
+    box-sizing: border-box;
+    color: rgba(255, 255, 255, 0);
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                box-shadow var(--duration-fast) var(--ease-standard);
 }
-
+.template-input:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-glow);
+}
 .template-input-placeholder {
-    color: #ffffffb2;
+    color: var(--color-fg-subtle);
     border-style: none;
 }
-
-.template-text span {
-    font-family: monospace !important;
-}
-
 .template-text {
-    position: relative; 
-    z-index: 10; 
-    top: 44px;
-    margin-left: 12px;
-    font-size: 16px;
-    max-width: 776px;
-    text-align: left;
+    position: absolute;
     pointer-events: none;
+    top: 20px;
+    left: 12px;
+    right: 12px;
+    font-size: 16px;
+    text-align: left;
+    z-index: 10;
+    line-height: 1.4;
 }
+.template-text span { font-family: monospace !important; }
 
 .fake-cursor {
-    position: relative;
-    top: 57px;
+    position: absolute;
+    top: 20px;
     z-index: 20;
-    height: 16px;
+    height: 20px;
     width: 4px;
     margin-left: 12px;
     font-weight: bold;
@@ -507,7 +586,6 @@ watch(() => config.value.template, () => {
     animation-duration: 2s;
     animation-iteration-count: infinite;
 }
-
 @keyframes blink {
     0% { opacity: 0.25; }
     50% { opacity: 0.64; }
@@ -515,34 +593,66 @@ watch(() => config.value.template, () => {
 }
 
 .suggestions-box {
-    background-color: #111111;
+    background-color: var(--color-bg-overlay);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-2);
     max-width: 500px;
     width: 500px;
-    font-size: 16px;
+    font-size: 14px;
     text-align: left;
     padding: 8px;
     display: flex;
     position: absolute;
     z-index: 10;
+    margin-top: 6px;
 }
-
-.suggestion-help-function {
-    font-size: 14px;
-}
-
+.suggestion-help-function { font-size: 13px; }
 .help-suggestion-selected {
-    background-color: #070707;
+    background-color: rgba(0, 210, 191, 0.08);
+    border-radius: var(--radius-xs);
 }
 
-.custom-margin {
-    margin-top: 35px !important;
+/* Preview rows */
+.renamer-preview { max-height: 360px; overflow-y: auto; }
+.renamer-preview-row {
+    font-size: 12px;
+    color: var(--color-fg-muted);
+    padding: 6px 8px;
+    border-bottom: 1px dashed var(--color-border);
+    word-break: break-all;
+}
+.renamer-preview-row:last-child { border-bottom: none; }
+.renamer-preview-count {
+    flex: 0 0 auto;
+    align-self: center;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 10px;
+    border-radius: var(--radius-full, 9999px);
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+    background: rgba(0, 210, 191, 0.08);
 }
 
+.renamer-options-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 360px;
+}
+
+/* Legacy helper kept for the keybind-icon used in older copy. */
 .keybind-icon {
-    padding: 4px;
-    border-radius: 2px;
-    background: #262828;
+    padding: 3px 7px;
+    border-radius: var(--radius-xs);
+    background: var(--color-bg-overlay);
+    border: 1px solid var(--color-border);
     margin-bottom: 4px;
     margin-left: 4px;
+    font-family: var(--font-mono);
 }
+.text-accent { color: var(--color-accent); }
 </style>

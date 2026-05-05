@@ -1,0 +1,54 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg1b" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#0e131e"/><stop offset="100%" stop-color="#050811"/></radialGradient>
+    <linearGradient id="wave1b" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#00D2BF" stop-opacity="0.6"/>
+      <stop offset="40%"  stop-color="#1ee5d2" stop-opacity="1"/>
+      <stop offset="60%"  stop-color="#1ee5d2" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#00D2BF" stop-opacity="0.6"/>
+    </linearGradient>
+    <filter id="glow1b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="glowSm1b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg1b)"/>
+
+  <!-- ambient glow behind disc (centered) -->
+  <circle cx="256" cy="256" r="180" fill="#00D2BF" opacity="0.07" filter="url(#glow1b)"/>
+
+  <!-- 4 concentric grooves — DEAD CENTER -->
+  <g fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round">
+    <circle cx="256" cy="256" r="172" opacity="0.18"/>
+    <circle cx="256" cy="256" r="138" opacity="0.22"/>
+    <circle cx="256" cy="256" r="104" opacity="0.18"/>
+    <circle cx="256" cy="256" r="68"  opacity="0.22"/>
+  </g>
+  <!-- accent ring (cyan) -->
+  <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="6" opacity="0.55" filter="url(#glow1b)"/>
+  <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="3.5"/>
+
+  <!-- center spindle -->
+  <circle cx="256" cy="256" r="18" fill="#00D2BF" filter="url(#glowSm1b)"/>
+  <circle cx="256" cy="256" r="11" fill="#ffffff"/>
+  <circle cx="256" cy="256" r="4" fill="#050811"/>
+
+  <!-- TAG overlapping the rings, only slightly breaking the outer circle.
+       Tag covers radii ~78 to ~178 at the horizontal centerline → sits on top of r=104, r=138, r=172 grooves.
+       Right edge passes ~6–13px past the outer ring. -->
+  <g transform="translate(376 256)">
+    <!-- glow halo under tag -->
+    <path d="M -42 0 L -16 -33 L 58 -33 L 58 33 L -16 33 Z" fill="#00D2BF" opacity="0.40" filter="url(#glowSm1b)"/>
+    <!-- white tag body -->
+    <path d="M -42 0 L -16 -33 L 58 -33 L 58 33 L -16 33 Z" fill="#ffffff" stroke="rgba(0,0,0,0.30)" stroke-width="1.5" stroke-linejoin="round"/>
+
+    <!-- WAVEFORM inside tag (replacing the hole + stripe) — same fluidity as 5b-flux -->
+    <!-- soft glow halo under wave for the "lit audio" feel -->
+    <path d="M -8 0 C -4 0, 0 -4, 4 -8 C 8 -14, 12 -20, 16 -22 C 20 -24, 22 -22, 24 -16 C 28 -8, 32 -2, 36 2 C 40 4, 44 -2, 48 -1 C 50 0, 51 0, 52 0"
+          fill="none" stroke="#00D2BF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow1b)" opacity="0.55"/>
+    <!-- dark backing stroke for crisp readability on the white tag -->
+    <path d="M -8 0 C -4 0, 0 -4, 4 -8 C 8 -14, 12 -20, 16 -22 C 20 -24, 22 -22, 24 -16 C 28 -8, 32 -2, 36 2 C 40 4, 44 -2, 48 -1 C 50 0, 51 0, 52 0"
+          fill="none" stroke="#050811" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+    <!-- main cyan stroke (gradient white→cyan→white for that 5b-flux glow signature) -->
+    <path d="M -8 0 C -4 0, 0 -4, 4 -8 C 8 -14, 12 -20, 16 -22 C 20 -24, 22 -22, 24 -16 C 28 -8, 32 -2, 36 2 C 40 4, 44 -2, 48 -1 C 50 0, 51 0, 52 0"
+          fill="none" stroke="url(#wave1b)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

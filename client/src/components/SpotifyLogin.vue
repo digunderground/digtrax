@@ -17,7 +17,7 @@
 </template>
 
 <script lang='ts' setup>
-import { get1t } from '../scripts/onetagger.js';
+import { get1t } from '../scripts/digtrax.js';
 import { spotifyUrl } from '../scripts/utils';
 
 const $1t = get1t();

@@ -160,7 +160,7 @@
 import { useQuasar } from 'quasar';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { get1t } from '../scripts/onetagger.js';
+import { get1t } from '../scripts/digtrax.js';
 import { TaggingStatusWrap } from '../scripts/autotagger';
 
 const $q = useQuasar();

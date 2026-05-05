@@ -1,0 +1,25 @@
+[package]
+name = "digtrax-cli"
+version = "1.7.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4"
+anyhow = "1.0"
+serde_json = "1.0"
+convert_case = "0.8"
+
+clap = { version = "4.5", features = ["derive"] }
+
+digtrax-ui = { path = "../digtrax-ui" }
+digtrax-tagger = { path = "../digtrax-tagger" }
+digtrax-shared = { path = "../digtrax-shared" }
+digtrax-autotag = { path = "../digtrax-autotag" }
+digtrax-renamer = { path = "../digtrax-renamer" }
+digtrax-playlist = { path = "../digtrax-playlist" }
+digtrax-platforms = { path = "../digtrax-platforms" }
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"

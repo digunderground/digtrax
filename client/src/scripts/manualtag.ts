@@ -1,5 +1,5 @@
 import { AutotaggerConfig, Track } from "./autotagger";
-import { get1t } from "./onetagger";
+import { get1t } from "./digtrax";
 import { wsUrl } from "./utils";
 
 class ManualTag {

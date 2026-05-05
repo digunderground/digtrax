@@ -1,0 +1,48 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgB" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#0e131e"/><stop offset="100%" stop-color="#050811"/></radialGradient>
+    <linearGradient id="waveB" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#00D2BF" stop-opacity="0.6"/>
+      <stop offset="40%"  stop-color="#1ee5d2" stop-opacity="1"/>
+      <stop offset="60%"  stop-color="#1ee5d2" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#00D2BF" stop-opacity="0.6"/>
+    </linearGradient>
+    <filter id="glowB" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="glowSmB" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bgB)"/>
+
+  <!-- ambient -->
+  <circle cx="256" cy="256" r="180" fill="#00D2BF" opacity="0.07" filter="url(#glowB)"/>
+
+  <!-- grooves -->
+  <g fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round">
+    <circle cx="256" cy="256" r="172" opacity="0.18"/>
+    <circle cx="256" cy="256" r="138" opacity="0.22"/>
+    <circle cx="256" cy="256" r="104" opacity="0.18"/>
+    <circle cx="256" cy="256" r="68"  opacity="0.22"/>
+  </g>
+  <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="6" opacity="0.55" filter="url(#glowB)"/>
+  <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="3.5"/>
+
+  <!-- spindle -->
+  <circle cx="256" cy="256" r="18" fill="#00D2BF" filter="url(#glowSmB)"/>
+  <circle cx="256" cy="256" r="11" fill="#ffffff"/>
+  <circle cx="256" cy="256" r="4" fill="#050811"/>
+
+  <!-- TAG with slightly rounded corners -->
+  <g transform="translate(376 256)">
+    <path d="M -42 0 L -20 -30 Q -16 -33 -12 -33 L 54 -33 Q 58 -33 58 -29 L 58 29 Q 58 33 54 33 L -12 33 Q -16 33 -20 30 Z"
+          fill="#00D2BF" opacity="0.40" filter="url(#glowSmB)"/>
+    <path d="M -42 0 L -20 -30 Q -16 -33 -12 -33 L 54 -33 Q 58 -33 58 -29 L 58 29 Q 58 33 54 33 L -12 33 Q -16 33 -20 30 Z"
+          fill="#ffffff" stroke="rgba(0,0,0,0.30)" stroke-width="1.5" stroke-linejoin="round"/>
+
+    <!-- WAVEFORM B — TRANSIENT SPIKE (quiet → dramatic spike → settling activity) -->
+    <path d="M -8 0 C -5 -1, -2 -1, 0 -1 C 2 -1, 4 -2, 6 -3 C 8 -6, 9 -14, 11 -22 C 12 -25, 13 -25, 15 -22 C 17 -16, 19 -8, 21 -4 C 24 -2, 28 -3, 32 -4 C 36 -2, 40 -3, 44 -1 C 47 -1, 50 0, 52 0"
+          fill="none" stroke="#00D2BF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" filter="url(#glowB)" opacity="0.65"/>
+    <path d="M -8 0 C -5 -1, -2 -1, 0 -1 C 2 -1, 4 -2, 6 -3 C 8 -6, 9 -14, 11 -22 C 12 -25, 13 -25, 15 -22 C 17 -16, 19 -8, 21 -4 C 24 -2, 28 -3, 32 -4 C 36 -2, 40 -3, 44 -1 C 47 -1, 50 0, 52 0"
+          fill="none" stroke="#050811" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+    <path d="M -8 0 C -5 -1, -2 -1, 0 -1 C 2 -1, 4 -2, 6 -3 C 8 -6, 9 -14, 11 -22 C 12 -25, 13 -25, 15 -22 C 17 -16, 19 -8, 21 -4 C 24 -2, 28 -3, 32 -4 C 36 -2, 40 -3, 44 -1 C 47 -1, 50 0, 52 0"
+          fill="none" stroke="url(#waveB)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

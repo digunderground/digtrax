@@ -1,0 +1,50 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg1a" cx="35%" cy="30%" r="80%"><stop offset="0%" stop-color="#0e131e"/><stop offset="100%" stop-color="#050811"/></radialGradient>
+    <radialGradient id="disc1a" cx="50%" cy="50%" r="55%"><stop offset="0%" stop-color="#1a2030"/><stop offset="70%" stop-color="#0a0e18"/><stop offset="100%" stop-color="#06080f"/></radialGradient>
+    <radialGradient id="lbl1a" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#1ee5d2"/><stop offset="100%" stop-color="#00D2BF"/></radialGradient>
+    <filter id="glow1a" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="glowSm1a" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg1a)"/>
+
+  <!-- ambient glow behind disc -->
+  <circle cx="232" cy="288" r="180" fill="#00D2BF" opacity="0.06" filter="url(#glow1a)"/>
+
+  <!-- vinyl disc (slightly bottom-left to make room for tag at upper-right) -->
+  <circle cx="232" cy="288" r="170" fill="url(#disc1a)"/>
+  <g stroke="rgba(255,255,255,0.06)" fill="none" stroke-width="1">
+    <circle cx="232" cy="288" r="160"/>
+    <circle cx="232" cy="288" r="148"/>
+    <circle cx="232" cy="288" r="136"/>
+    <circle cx="232" cy="288" r="124"/>
+    <circle cx="232" cy="288" r="112"/>
+    <circle cx="232" cy="288" r="98"/>
+    <circle cx="232" cy="288" r="84"/>
+  </g>
+  <!-- accent groove -->
+  <circle cx="232" cy="288" r="118" fill="none" stroke="#00D2BF" stroke-width="2.5" opacity="0.55" filter="url(#glow1a)"/>
+  <circle cx="232" cy="288" r="118" fill="none" stroke="#00D2BF" stroke-width="2"/>
+
+  <!-- center label -->
+  <circle cx="232" cy="288" r="58" fill="url(#lbl1a)"/>
+  <circle cx="232" cy="288" r="58" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
+  <circle cx="232" cy="288" r="9" fill="#050811"/>
+
+  <!-- string from top edge dangling down to the tag's hole -->
+  <path d="M 376 36 Q 392 110 380 188" fill="none" stroke="#7a8090" stroke-width="2" stroke-dasharray="4,4" stroke-linecap="round"/>
+
+  <!-- LARGE TAG hovering at upper-right (no tonearm), slight tilt, point facing the disc center -->
+  <g transform="translate(396 200) rotate(-22)">
+    <!-- glow under tag -->
+    <path d="M -36 0 L -14 -28 L 56 -28 L 56 28 L -14 28 Z" fill="#00D2BF" opacity="0.45" filter="url(#glow1a)"/>
+    <!-- tag body, white -->
+    <path d="M -36 0 L -14 -28 L 56 -28 L 56 28 L -14 28 Z" fill="#ffffff" stroke="rgba(0,0,0,0.25)" stroke-width="1.5"/>
+    <!-- string hole near point -->
+    <circle cx="-8" cy="0" r="5" fill="#050811"/>
+    <circle cx="-8" cy="0" r="5" fill="none" stroke="rgba(0,0,0,0.4)" stroke-width="0.5"/>
+    <!-- cyan stripe across body -->
+    <rect x="6" y="-9" width="44" height="18" fill="#00D2BF" filter="url(#glowSm1a)"/>
+    <rect x="6" y="-9" width="44" height="18" fill="#00D2BF"/>
+  </g>
+</svg>

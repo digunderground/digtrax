@@ -1,82 +1,139 @@
 <template>
 <div>
-    <div class='q-mt-xs q-mb-sm text-grey-5 row'>
-        <!-- Search -->
-        <div class="col">
-            <q-input 
+    <div class="qt-shell">
+      <aside class="qt-pane qt-pane-left">
+        <QuickTagFileBrowser></QuickTagFileBrowser>
+      </aside>
+      <main class="qt-pane qt-pane-center" :style="{ '--col-template': colTemplate }">
+        <!-- Compact toolbar: search + stats + cards/rows toggle -->
+        <div class="qt-toolbar">
+            <q-input
                 dense
                 v-model='filter'
-                :label-slot="true"
-                class='q-pl-md qt-search-bar'
                 filled
+                placeholder='Filter'
+                class='qt-search'
                 @update:model-value='filterTracks()'
             >
-                <template v-slot:label>
-                    <q-icon name="mdi-magnify" size="xs" class='q-pl-xs'></q-icon>
+                <template v-slot:prepend>
+                    <q-icon name="mdi-magnify" size="16px"></q-icon>
+                </template>
+                <template v-slot:append v-if='filter'>
+                    <q-icon name="mdi-close" size="16px" class='cursor-pointer' @click='filter = ""; filterTracks()'></q-icon>
                 </template>
             </q-input>
-        </div>
-    
-        <!-- Sort -->
-        <div class='col-9 row q-pb-sm text-caption text-weight-medium bg-darker text-grey-6 text-capitalize justify-between clickable' :style='"margin-top: 13px"'>
-            <span v-for='(option, i) in sortOptions' :key='"so"+i' @click='sort(option)' class='row q-pl-xs'>
-                <div :class='{"text-grey-4 clickable": sortOption == option}'>{{option}}</div>
-                <div v-if='sortOption == option'>
-                    <q-icon style='margin-bottom: 2px;' name='mdi-arrow-up' v-if='!sortDescending'></q-icon>
-                    <q-icon style='margin-bottom: 2px;' name='mdi-arrow-down' v-if='sortDescending'></q-icon>
-                </div>
-            </span>
-        </div>
 
-        <!-- Dense tracks -->
-        <div class="col-1 clickable q-mr-md text-right">
-            <div class='q-pr-xs'>
-                <q-btn 
-                    :icon='$1t.settings.value.quickTag.thinTracks ? "mdi-view-list" : "mdi-format-list-bulleted-square"' 
-                    round
-                    flat
-                    size='sm' 
-                    color='text-grey-4' 
-                    :style='"margin-top: 8px"'
-                    @click='$1t.settings.value.quickTag.thinTracks = !$1t.settings.value.quickTag.thinTracks'
-                ></q-btn>
+            <div class="qt-stats">
+                <span class="qt-stats-num">{{ tracks.length }}</span>
+                <span class="qt-stats-of">of</span>
+                <span class="qt-stats-num">{{ $1t.quickTag.value.tracks.length }}</span>
+                <span
+                    v-if='$1t.quickTag.value.failed.length != 0'
+                    class="qt-stats-warn"
+                    @click='failedDialog = true'
+                    title="Failed to load — click for details"
+                >
+                    · {{ $1t.quickTag.value.failed.length }} failed
+                </span>
+                <span
+                    v-if='$1t.quickTag.value.isLimited()'
+                    class="qt-stats-warn"
+                    @click='$1t.loadQuickTag(undefined, false)'
+                    title="Capped at 500 — click to load all"
+                >
+                    · capped
+                </span>
+            </div>
+
+            <div class="qt-toolbar-spacer"></div>
+
+            <!-- Column visibility menu — only meaningful in rows mode where the
+                 grid header drives layout. Custom fields (Vibe, Situation, …)
+                 appear in this list automatically because they're derived from
+                 settings.quickTag.custom in qtColumns.ts. -->
+            <q-btn
+                v-if='$1t.settings.value.quickTag.thinTracks'
+                flat dense
+                size='sm'
+                icon='mdi-view-column-outline'
+                class='qt-cols-btn'
+                title='Show / hide columns'
+            >
+                <q-menu class='qt-cols-menu'>
+                    <q-list dense>
+                        <q-item-label header class='qt-cols-header'>Columns</q-item-label>
+                        <q-item
+                            v-for='col in allColumns'
+                            :key='col.key'
+                            clickable
+                            v-close-popup.once
+                            @click='toggleColumn(col.key)'
+                        >
+                            <q-item-section side>
+                                <q-icon
+                                    :name='col.visible ? "mdi-checkbox-marked" : "mdi-checkbox-blank-outline"'
+                                    :color='col.visible ? "primary" : "grey-6"'
+                                    size='16px'
+                                />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label>{{ col.label }}</q-item-label>
+                                <q-item-label caption v-if='col.kind === "custom"'>custom field</q-item-label>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-menu>
+            </q-btn>
+
+            <div class="qt-view-toggle">
+                <button
+                    class="qt-view-btn"
+                    :class="{ active: !$1t.settings.value.quickTag.thinTracks }"
+                    @click="$1t.settings.value.quickTag.thinTracks = false"
+                    title="Cards view"
+                >
+                    <q-icon name="mdi-view-grid" size="14px"></q-icon>
+                    <span>Cards</span>
+                </button>
+                <button
+                    class="qt-view-btn"
+                    :class="{ active: $1t.settings.value.quickTag.thinTracks }"
+                    @click="$1t.settings.value.quickTag.thinTracks = true"
+                    title="Rows view (↑↓ to navigate)"
+                >
+                    <q-icon name="mdi-view-list" size="14px"></q-icon>
+                    <span>Rows</span>
+                </button>
             </div>
         </div>
-    </div>
 
-    <!-- Stats -->
-    <div class='q-mx-lg text-grey-7 q-my-xs text-caption text-center'>
-        Loaded files: <span class='monospace text-bold'>{{$1t.quickTag.value.tracks.length}}</span>
-        <span class='q-ml-md'>Filtered: </span><span class='monospace text-bold'>{{tracks.length}}</span>
-        <span v-if='$1t.quickTag.value.failed.length != 0'><span class='q-ml-md'>Failed to load: </span>
-            <span class='monospace text-bold' @click='failedDialog = true'>{{$1t.quickTag.value.failed.length}} 
-                <span class='text-weight-medium show-link cursor-pointer'>Show details</span>
-            </span>
-        </span>
-        
-        <span class='q-ml-md text-caption cursor-pointer' :style='"margin-left: 13px"' v-if='$1t.quickTag.value.isLimited()' @click='$1t.loadQuickTag(undefined, false)'>
-            Loading was capped to <span class='text-caption monospace text-bold'>500</span> tracks! <span class='q-ml-xs text-weight-medium show-link cursor-pointer'>Show all</span>
-        </span>
-    </div>
-
+        <!-- Sortable column header (click to sort, drag dividers to resize in Rows mode) -->
+        <QuickTagColumnHeader
+            :sort-option='sortOption'
+            :sort-descending='sortDescending'
+            :cards='!$1t.settings.value.quickTag.thinTracks'
+            @sort='sort'
+        ></QuickTagColumnHeader>
 
     <!-- Tracks -->
     <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}' @scroll='onScroll'>
-        
-        <!-- Tracklist -->
-        <div v-for='item in tracks' :key='item.path' v-if='!$1t.settings.value.quickTag.thinTracks'>
-            <q-intersection style='height: 116px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
-                <QuickTagTile :track='item' :no-art-cache="noArtCacheList.includes(item.path)"></QuickTagTile>
-                <QuickTagContextMenu 
-                    @manual-tag="onManualTag(item.path)"
-                    :path="item.path"
-                ></QuickTagContextMenu>
-            </q-intersection>
+
+        <!-- Card grid (V4) -->
+        <div class='qt-cards-grid' v-if='!$1t.settings.value.quickTag.thinTracks'>
+            <div v-for='item in tracks' :key='item.path' class='qt-card-grid-item'>
+                <q-intersection style='height: 100%;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
+                    <QuickTagTile :track='item' :no-art-cache="noArtCacheList.includes(item.path)"></QuickTagTile>
+                    <QuickTagContextMenu
+                        @manual-tag="onManualTag(item.path)"
+                        :path="item.path"
+                    ></QuickTagContextMenu>
+                </q-intersection>
+            </div>
         </div>
         <!-- Thin tracks -->
         <div :style='`width: ${tracklistWidth}`'>
             <div v-for='(item, i) in tracks' :key='item.path' v-if='$1t.settings.value.quickTag.thinTracks'>
-                <q-intersection style='height: 32px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
+                <q-intersection style='height: 40px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
                     <QuickTagTileThin :track='item' :odd='i % 2 == 1'></QuickTagTileThin>
                     <QuickTagContextMenu 
                         @manual-tag="onManualTag(item.path)"
@@ -168,13 +225,17 @@
                     </div>
                     <div class="col text-body text-weight-bold text-grey-6 text-left">
                         <span class='keybind-icon q-pl-sm'>RIGHT</span><span class='keybind-icon q-px-sm'>CLICK</span>
-                    </div> 
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-            
-    
+      </main>
+      <aside class="qt-pane qt-pane-right" v-if="$1t.quickTag.value.track">
+        <QuickTagRight></QuickTagRight>
+      </aside>
+    </div>
+
     <!-- Save dialog -->
     <q-dialog v-model='saveDialog'>
         <q-card>
@@ -242,13 +303,23 @@
 <script lang='ts' setup>
 import { scroll, useQuasar } from 'quasar';
 import { Ref, computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { get1t } from '../scripts/onetagger.js';
+import { get1t } from '../scripts/digtrax.js';
 import { CustomTagInfo, QTTrack } from '../scripts/quicktag.js';
 
 import ManualTag from '../components/ManualTag.vue';
 import QuickTagTile from '../components/QuickTagTile.vue';
 import QuickTagTileThin from '../components/QuickTagTileThin.vue';
 import QuickTagContextMenu from '../components/QuickTagContextMenu.vue';
+import QuickTagFileBrowser from '../components/QuickTagFileBrowser.vue';
+import QuickTagRight from '../components/QuickTagRight.vue';
+import QuickTagColumnHeader from '../components/QuickTagColumnHeader.vue';
+import { colTemplate, columns as allColumns, setColumnVisible } from '../scripts/qtColumns';
+
+function toggleColumn(key: string) {
+    const col = allColumns.value.find((c) => c.key === key);
+    if (!col) return;
+    setColumnVisible(key, !col.visible);
+}
 
 const { setVerticalScrollPosition } = scroll;
 
@@ -717,5 +788,192 @@ watch($1t.quickTag.value.track, () => {
     background: transparent !important;
 }
 
+/* V4 — Quick Tag 3-pane shell. File browser on left, track content center, inspector right. */
+.qt-shell {
+    display: flex;
+    height: calc(100vh - 8px);
+    overflow: hidden;
+    align-items: stretch;
+}
+
+.qt-pane {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.qt-pane-left {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--color-bg-elevated);
+    border-right: 1px solid var(--color-border);
+}
+
+.qt-pane-center {
+    flex: 1;
+    min-width: 0;
+    background: var(--color-bg);
+    padding: 0 8px;
+}
+
+.qt-pane-right {
+    width: 300px;
+    flex-shrink: 0;
+    background: var(--color-bg-elevated);
+    border-left: 1px solid var(--color-border);
+}
+
+/* Override the legacy full-height calc inside the new pane (the pane itself scrolls). */
+.qt-pane-center .qt-full-height {
+    height: auto !important;
+    min-height: calc(100vh - 240px);
+}
+.qt-pane-center .qt-height {
+    height: auto !important;
+    min-height: calc(100vh - 320px);
+}
+
+/* V4 — Cards grid (vertical tiles, multi-column) */
+.qt-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    padding: 8px 4px 16px;
+}
+
+.qt-card-grid-item {
+    height: 280px;
+}
+
+/* V4 — Compact toolbar (search + stats + view toggle on one row) */
+.qt-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 4px;
+    flex-wrap: nowrap;
+}
+
+.qt-search {
+    width: 240px;
+    flex-shrink: 0;
+}
+
+.qt-search :deep(.q-field__control) {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-radius: var(--radius-sm) !important;
+    height: 32px !important;
+    min-height: 32px !important;
+}
+
+.qt-search :deep(.q-field__native) {
+    padding: 0 !important;
+    min-height: 32px !important;
+    font-size: 13px;
+}
+
+.qt-search :deep(.q-field__control::before) {
+    border: none !important;
+}
+
+.qt-stats {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-fg-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
+}
+
+.qt-stats-num {
+    color: var(--color-fg);
+    font-weight: 600;
+}
+
+.qt-stats-of {
+    color: var(--color-fg-subtle);
+    text-transform: lowercase;
+}
+
+.qt-stats-warn {
+    color: var(--color-warning);
+    cursor: pointer;
+    margin-left: 4px;
+    text-transform: none;
+}
+
+.qt-stats-warn:hover {
+    text-decoration: underline;
+}
+
+.qt-toolbar-spacer {
+    flex: 1;
+}
+
+/* Column visibility button — sits left of the Rows/Cards toggle. */
+.qt-cols-btn {
+    color: var(--color-fg-muted);
+    margin-right: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0 6px;
+}
+.qt-cols-btn:hover { color: var(--color-fg); }
+.qt-cols-menu {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    min-width: 200px;
+}
+.qt-cols-header {
+    color: var(--color-fg-subtle);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 8px 12px 4px;
+}
+
+/* V4 — Rows / Cards segmented control */
+.qt-view-toggle {
+    display: inline-flex;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+    gap: 2px;
+}
+
+.qt-view-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-fg-muted);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 5px 10px;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all var(--duration-fast) var(--ease-standard);
+    white-space: nowrap;
+}
+
+.qt-view-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-fg);
+}
+
+.qt-view-btn.active {
+    background: var(--color-accent);
+    color: #002b27;
+    box-shadow: 0 0 8px var(--color-accent-glow);
+    font-weight: 700;
+}
 
 </style>

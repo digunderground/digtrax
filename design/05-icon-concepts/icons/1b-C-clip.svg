@@ -1,0 +1,96 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgCc" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#0e131e"/><stop offset="100%" stop-color="#050811"/></radialGradient>
+    <linearGradient id="waveFillCc" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"  stop-color="#00D2BF" stop-opacity="0.85"/>
+      <stop offset="50%" stop-color="#1ee5d2" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#00D2BF" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="waveStrokeCc" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#1ee5d2" stop-opacity="0.7"/>
+      <stop offset="50%"  stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#1ee5d2" stop-opacity="0.7"/>
+    </linearGradient>
+    <filter id="glowCc" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="glowSmCc" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+    <!-- Clip path is the tag shape itself (in the tag's local translated frame) -->
+    <clipPath id="tagClipCc">
+      <path d="M -49 0 L -23 -36 Q -19 -39 -14 -39 L 63 -39 Q 68 -39 68 -34 L 68 34 Q 68 39 63 39 L -14 39 Q -19 39 -23 36 Z"
+            transform="translate(370 256)"/>
+    </clipPath>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bgCc)"/>
+
+  <!-- ambient -->
+  <circle cx="256" cy="256" r="180" fill="#00D2BF" opacity="0.07" filter="url(#glowCc)"/>
+
+  <!-- grooves -->
+  <g fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round">
+    <circle cx="256" cy="256" r="172" opacity="0.18"/>
+    <circle cx="256" cy="256" r="138" opacity="0.22"/>
+    <circle cx="256" cy="256" r="104" opacity="0.18"/>
+    <circle cx="256" cy="256" r="68"  opacity="0.22"/>
+  </g>
+  <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="6" opacity="0.55" filter="url(#glowCc)"/>
+  <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="3.5"/>
+
+  <!-- spindle -->
+  <circle cx="256" cy="256" r="18" fill="#00D2BF" filter="url(#glowSmCc)"/>
+  <circle cx="256" cy="256" r="11" fill="#ffffff"/>
+  <circle cx="256" cy="256" r="4" fill="#050811"/>
+
+  <!-- LARGE ROUNDED TAG (with clipped waveform inside — the tag IS the viewport on the audio) -->
+  <g transform="translate(370 256)">
+    <!-- glow halo -->
+    <path d="M -49 0 L -23 -36 Q -19 -39 -14 -39 L 63 -39 Q 68 -39 68 -34 L 68 34 Q 68 39 63 39 L -14 39 Q -19 39 -23 36 Z"
+          fill="#00D2BF" opacity="0.45" filter="url(#glowSmCc)"/>
+    <!-- white tag base -->
+    <path d="M -49 0 L -23 -36 Q -19 -39 -14 -39 L 63 -39 Q 68 -39 68 -34 L 68 34 Q 68 39 63 39 L -14 39 Q -19 39 -23 36 Z"
+          fill="#ffffff"/>
+  </g>
+
+  <!-- Clipped waveform group — wave extends WAY beyond tag bounds; only the tag-shaped slice is visible -->
+  <g clip-path="url(#tagClipCc)">
+    <!-- subtle dashed center axis -->
+    <line x1="290" y1="256" x2="450" y2="256" stroke="rgba(0,0,0,0.12)" stroke-width="1" stroke-dasharray="2,4"/>
+    <!-- filled waveform shape — closed path, upper envelope L→R then lower envelope R→L -->
+    <!-- Coordinates are in the parent SVG frame (NOT translated), spanning x≈260..480 across the tag horizontally -->
+    <path d="M 260 256
+             C 280 252, 300 244, 320 240
+             C 340 236, 350 222, 360 216
+             C 370 210, 380 222, 390 232
+             C 398 240, 405 220, 410 210
+             C 415 200, 420 224, 426 234
+             C 434 244, 442 226, 450 220
+             C 460 214, 470 248, 480 256
+             L 480 256
+             C 470 264, 460 298, 450 292
+             C 442 286, 434 268, 426 278
+             C 420 288, 415 312, 410 302
+             C 405 292, 398 272, 390 280
+             C 380 290, 370 302, 360 296
+             C 350 290, 340 276, 320 272
+             C 300 268, 280 260, 260 256 Z"
+          fill="url(#waveFillCc)"/>
+    <!-- upper envelope stroke -->
+    <path d="M 260 256 C 280 252, 300 244, 320 240 C 340 236, 350 222, 360 216 C 370 210, 380 222, 390 232 C 398 240, 405 220, 410 210 C 415 200, 420 224, 426 234 C 434 244, 442 226, 450 220 C 460 214, 470 248, 480 256"
+          fill="none" stroke="url(#waveStrokeCc)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- lower envelope stroke -->
+    <path d="M 260 256 C 280 260, 300 268, 320 272 C 340 276, 350 290, 360 296 C 370 302, 380 290, 390 280 C 398 272, 405 292, 410 302 C 415 312, 420 288, 426 278 C 434 268, 442 286, 450 292 C 460 298, 470 264, 480 256"
+          fill="none" stroke="url(#waveStrokeCc)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- additional small ticks for "data" feel -->
+    <g stroke="rgba(255,255,255,0.55)" stroke-width="1" stroke-linecap="round">
+      <line x1="305" y1="252" x2="305" y2="260"/>
+      <line x1="345" y1="252" x2="345" y2="260"/>
+      <line x1="385" y1="252" x2="385" y2="260"/>
+      <line x1="425" y1="252" x2="425" y2="260"/>
+      <line x1="465" y1="252" x2="465" y2="260"/>
+    </g>
+  </g>
+
+  <!-- tag border on top of clipped content -->
+  <g transform="translate(370 256)">
+    <path d="M -49 0 L -23 -36 Q -19 -39 -14 -39 L 63 -39 Q 68 -39 68 -34 L 68 34 Q 68 39 63 39 L -14 39 Q -19 39 -23 36 Z"
+          fill="none" stroke="rgba(0,0,0,0.32)" stroke-width="1.75" stroke-linejoin="round"/>
+  </g>
+</svg>

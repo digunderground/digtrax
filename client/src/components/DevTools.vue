@@ -65,7 +65,7 @@
 
 <script lang='ts' setup>
 import { useDialogPluginComponent, useQuasar } from 'quasar';
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 import { computed, onMounted, ref } from 'vue';
 
 const { dialogRef, onDialogHide } = useDialogPluginComponent();
@@ -149,7 +149,7 @@ const log = computed(() => {
             });
         } else {
             // Only this log
-            if (!fullLog.value && l.includes('Starting OneTagger') && lines.length > 1) {
+            if (!fullLog.value && l.includes('Starting DigTrax') && lines.length > 1) {
                 lines = lines.slice(lines.length - 1);
             }
             lines[lines.length - 1].line += '\n' + l;

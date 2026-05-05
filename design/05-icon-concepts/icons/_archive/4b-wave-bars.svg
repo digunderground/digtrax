@@ -1,0 +1,51 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg4b" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#0e131e"/><stop offset="100%" stop-color="#050811"/></radialGradient>
+    <filter id="glow4b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg4b)"/>
+  <!-- ambient -->
+  <ellipse cx="256" cy="256" rx="180" ry="80" fill="#00D2BF" opacity="0.07" filter="url(#glow4b)"/>
+
+  <!-- 17 bars, asymmetric heights and opacities — looks like a real audio signal, not a perfect mirror -->
+  <!-- bar width 14, gap 8 -> total 17*14 + 16*8 = 238+128 = 366. center start x = (512-366)/2 = 73 -->
+  <g>
+    <g fill="#ffffff">
+      <rect x="73"  y="240" width="14" height="32"  rx="3" opacity="0.45"/>
+      <rect x="95"  y="218" width="14" height="76"  rx="3" opacity="0.65"/>
+      <rect x="117" y="232" width="14" height="48"  rx="3" opacity="0.55"/>
+      <rect x="139" y="194" width="14" height="124" rx="3" opacity="0.80"/>
+      <rect x="161" y="174" width="14" height="164" rx="3" opacity="0.90"/>
+      <rect x="183" y="206" width="14" height="100" rx="3" opacity="0.70"/>
+      <rect x="205" y="148" width="14" height="216" rx="3"/>
+    </g>
+    <!-- cyan tagged section (asymmetric — center-left of icon, not symmetric) -->
+    <g filter="url(#glow4b)">
+      <rect x="227" y="118" width="14" height="276" rx="3" fill="#00D2BF" opacity="0.6"/>
+      <rect x="249" y="94"  width="14" height="324" rx="3" fill="#00D2BF" opacity="0.75"/>
+      <rect x="271" y="138" width="14" height="236" rx="3" fill="#00D2BF" opacity="0.55"/>
+    </g>
+    <g fill="#00D2BF">
+      <rect x="227" y="118" width="14" height="276" rx="3"/>
+      <rect x="249" y="94"  width="14" height="324" rx="3"/>
+      <rect x="271" y="138" width="14" height="236" rx="3"/>
+    </g>
+    <g fill="#ffffff">
+      <rect x="293" y="180" width="14" height="152" rx="3" opacity="0.85"/>
+      <rect x="315" y="160" width="14" height="192" rx="3"/>
+      <rect x="337" y="216" width="14" height="80"  rx="3" opacity="0.65"/>
+      <rect x="359" y="186" width="14" height="140" rx="3" opacity="0.85"/>
+      <rect x="381" y="222" width="14" height="68"  rx="3" opacity="0.60"/>
+      <rect x="403" y="206" width="14" height="100" rx="3" opacity="0.70"/>
+      <rect x="425" y="234" width="14" height="44"  rx="3" opacity="0.50"/>
+    </g>
+  </g>
+
+  <!-- bracket marks left & right (V04 motif) -->
+  <g stroke="#00D2BF" stroke-width="4" stroke-linecap="round" fill="none">
+    <path d="M 60 222 L 48 222 L 48 290 L 60 290" filter="url(#glow4b)" opacity="0.5"/>
+    <path d="M 60 222 L 48 222 L 48 290 L 60 290"/>
+    <path d="M 452 222 L 464 222 L 464 290 L 452 290" filter="url(#glow4b)" opacity="0.5"/>
+    <path d="M 452 222 L 464 222 L 464 290 L 452 290"/>
+  </g>
+</svg>

@@ -1,120 +1,147 @@
-@import 'quasar.scss';
+// DigTrax V4 global styles
+// Order matters: quasar palette (compile-time) → V4 tokens (CSS vars) → globals.
 
+@import 'quasar.scss';
+@import 'tokens.scss';
+
+// Dosis kept as a fallback for legacy components that may still reference it.
+// The V4 system uses JetBrains Mono everywhere — see DESIGN.md.
 @font-face {
     font-family: Dosis;
     src: url('./fonts/Dosis-Light.ttf');
     font-weight: 300;
 }
-
 @font-face {
     font-family: Dosis;
     src: url('./fonts/Dosis-Regular.ttf');
     font-weight: 400;
 }
-
 @font-face {
     font-family: Dosis;
     src: url('./fonts/Dosis-Medium.ttf');
     font-weight: 500;
 }
-
 @font-face {
     font-family: Dosis;
     src: url('./fonts/Dosis-SemiBold.ttf');
     font-weight: 600;
 }
-
 @font-face {
     font-family: Dosis;
     src: url('./fonts/Dosis-Bold.ttf');
     font-weight: 700;
 }
-
 @font-face {
     font-family: Dosis;
     src: url('./fonts/Dosis-ExtraBold.ttf');
     font-weight: 800;
 }
 
+// Player-bar custom waveform digit font — preserved as-is.
 @font-face {
     font-family: wavefont;
     src: url('./fonts/wavefont.woff2') format('woff2');
 }
 
+// Empty fallback retained from the legacy app — used for invisible spacing in some layouts.
 @font-face {
     font-family: blank;
-    /* src: url(./AdobeBlank2VF.ttf.woff2); */
     src: url('data:application/x-font-woff;charset=utf-8;base64,d09GMgABAAAAAARMABMAAAAAC1AAAAPjAAEAxQAAAAAAAAAAAAAAAAAAAAAAAAAAGUYcID9IVkFSVAZgP1NUQVQkP1ZWQVJjAIIAL0YKWFwwLgE2AiQDCAsGAAQgBYsyBzEXJBgIGwEKEcXkJfmqgCdD4yWAULaeeBovVzstIc6riunXpnmtXivg+BLWsFA1x8PTXP+eO5PNAn8AUCwJsYCgqxxZ1JUELrLsXkOo3TUpDjbRB8Tvo61HSFe6NVBVO1SvlxDEvYxsxE4DfNN8ImIOJ0gqtv/9fq0+Wat/NsTds46FRuqU8lf0gse1iqY3dLfkGRqhqiTVConpREoxCY1FPHelp1Ny+uwFWpZYoBA7dh04oaUEhFLUFDri7o2bj2BaFYGOOeZ1vLhvdQ0IMAUABHoC6yWZLbYAgJ9NX06XhIBcaa5iDdL76Qz2k7njkrV+ci1cx5uLNbeOtx22hbrOrMaqxrO/9QL9NwVgAUJoSZgClkjP3HjyTmDP7j0nIoQAM3AGAJfCk0F+cI8EIeugpw/+AUwGvq0R/IaJbxBM/EE9gRAIQEJCRkaBAg00UKJEE0200EIbbXTQQRdd9NBDH30MMMAQQ4wwEuEmSaYkBnnYDCBXEDnpwW9EJK5WZJBAgQZGmA0oQIMiXw91sjku790e3LzZfHZ461Z5+/ozFVTN2diLFz9/ql67cl8k+nvMWO4OBBKYtXsY6LwaespXbYFXt+TqtTcIhK83bvTx5eGGf1s5V/D9qt/p9najlt/Mj6KUQFCxsYrB4sZY4VoloVbYkpHGKGGx3RT/yaJo4wSfCEucQDLwLLLV3u5asKHhhk9QmpVZaOnEerTNyqaunQW61ucM+umj+BAD6xtRwIJe7SdfPJ0j6BTPIkzxelO3WVhf//c2jpwWnwkGXVHJ7/FoDWDAQVkQ+OBTFKZJu8lXljDZnk7YqITmExH/y0MxUyoCDOBqChwdIU8mZhKKCJ2upGVgbGinpSoKOgThuVdIkAJUCkD1UYqNlj3J5kSRrqElYYogo7sLvSE3eCVefdEJa/SRA1H0BWVMIMAKSoG1TMqBSbtr5Q+DNGe+gASmqJQCTiiX8mISEDDtHgvYUEpCDjCuCZD0oQJ1YQ3sjHRPlXdfK+E/rSY28Bg4cI6cV00RDZaMcjGklsyXggUDJ2BRVwCGvwLAfxa/WTib27k4LwoOHB0NbJMLE/HNdo7AyM7W2AINfIZwPg2I0KNAtGALqE+jIEEkfiTfWAAkgSiiBZJkLDgSCXf6EaZ2NnDRspAUq7MFXOYSaLDGnozJK4dkPCmTRSmRKSxxWiDAMFMxKVLnoZ7iPA0oLgj+UBlRkrmlg3DbW9ieSDMnJbu4KqNIxL1kjISZ9GjJ5+t2TALq0U3AcYLmZeFeX9Ww6+F30lD/+kXetcg6ZJg3EalzO/5jvn7dbo3cSO6f/4dc8dJzzBkJMwsAAAA=') format('woff2');
 }
 
+// Legacy waveform width var — preserved for the player.
 :root {
     --waveform-wave: 40;
 }
 
+// V4: JetBrains Mono everywhere. Backward-compat: classes that explicitly opt out (e.g. .wavefont) are honored.
 * {
-    font-family: Dosis !important;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Berkeley Mono', 'Fira Code', monospace !important;
     user-select: none;
+}
+
+// Body background uses V4 page color.
+body {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'tnum';
+}
+
+// Headings keep mono but allow uppercase via .upper utility (V2/V4 type rule).
+.upper {
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em;
+}
+
+// Quasar Quasar background helpers wired to V4 tokens.
+.bg-darker {
+    background: var(--color-bg-elevated) !important;
+}
+
+.bg-highlight {
+    background: var(--color-bg-overlay) !important;
+}
+
+.bg-digtrax-icon {
+    // Legacy class used by the home/Index view; keep so it doesn't regress until that view is refactored.
+    background: var(--color-bg-elevated);
+}
+
+.bg-background {
+    background: var(--color-bg) !important;
+}
+
+// V4 quasar tab indicator — accent with glow.
+.q-tab__indicator {
+    color: var(--color-accent) !important;
+    background-color: var(--color-accent) !important;
+    box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
 .text-h5 {
     padding-bottom: 6px;
 }
 
-.bg-darker {
-    background: #181818;
-}
-
-.bg-highlight {
-    background: #303030;
-}
-
-.bg-onetagger-icon {
-    background: #1A1A1A;
-}
-
-.q-tab__indicator {
-    color: var(--q-color-primary);
-}
-
 .q-field__control {
-    background-color: #99999910 !important;
+    background-color: rgba(255, 255, 255, 0.04) !important;
 }
 
-// Checkbox fix
+// Checkbox fix (legacy)
 .checkbox svg {
     color: #000;
 }
 
 // Input fix
 .input input {
-    color: #fff !important;
+    color: var(--color-fg) !important;
 }
 
 // Select fix
 .select span {
-    color: #fff !important;
+    color: var(--color-fg) !important;
 }
 
 // Tooltip fix
 .q-slider__pin-text {
-    color: #fff;
+    color: var(--color-fg);
 }
 
 .q-tooltip {
     font-size: 13px !important;
 }
 
-// Card shadow fix
+// Card shadow fix (kept — Quasar adds heavy shadows by default).
 .q-card {
-    box-shadow: none !important;
+    box-shadow: var(--shadow-1) !important;
+    border-radius: var(--radius-md) !important;
+    background: var(--color-bg-elevated) !important;
 }
 
-// https://medium.com/cloud-native-the-gathering/how-to-fix-your-angular-material-input-field-from-being-broken-in-safari-1419b12007ee
+// Safari input fixes (preserved from legacy)
 input {
     -webkit-user-select: text !important;
 }
-
-// Fix the input fields on Webkit
 input[type="search"] {
     -webkit-appearance: textfield;
 }
@@ -129,54 +156,52 @@ input[type="search"] {
 }
 
 .monospace {
-    font-family: monospace !important;
+    font-family: var(--font-mono) !important;
 }
 
-.dotted-underline { 
+.dotted-underline {
     border-bottom: 1px dotted;
 }
-.dotted-underline:hover { 
-    border-bottom: 1px dotted white;    
+.dotted-underline:hover {
+    border-bottom: 1px dotted var(--color-fg);
 }
 
-
-/* Renamer syntax higlighting colors */
+// Renamer syntax-highlighting colors — palette refreshed to match V4 dark theme.
 .__renamer_syntax_text {
-    color: #9e9e9e;
-    font-family: monospace !important;
+    color: var(--color-fg-muted);
+    font-family: var(--font-mono) !important;
 }
 .__renamer_syntax_operator {
-    color: #78909c;
-    font-family: monospace !important;
+    color: var(--color-fg-subtle);
+    font-family: var(--font-mono) !important;
 }
 .__renamer_syntax_string {
-    color: #4caf50;
-    font-family: monospace !important;
+    color: var(--color-success);
+    font-family: var(--font-mono) !important;
 }
 .__renamer_syntax_number {
-    color: #ff5722;
-    font-family: monospace !important;
+    color: var(--t-orange);
+    font-family: var(--font-mono) !important;
 }
 .__renamer_syntax_function {
-    color: #2196f3;
-    font-family: monospace !important;
+    color: var(--t-sky);
+    font-family: var(--font-mono) !important;
 }
 .__renamer_syntax_property {
-    color: #cfd8dc;
-    font-family: monospace !important;
+    color: var(--color-fg-muted);
+    font-family: var(--font-mono) !important;
 }
 .__renamer_syntax_variable {
-    color: #cfd8dc;
-    font-family: monospace !important;
+    color: var(--color-fg-muted);
+    font-family: var(--font-mono) !important;
 }
 
 code {
-    font-family: monospace !important;
+    font-family: var(--font-mono) !important;
     font-size: 85%;
 }
 
-
-// Scrollbar
+// Scrollbar — V4 dark with accent glow on hover
 ::-webkit-scrollbar {
     width: 10px;
 }
@@ -186,27 +211,263 @@ code {
 }
 
 ::-webkit-scrollbar-track {
-    background-color: #10101044;
+    background-color: rgba(255, 255, 255, 0.02);
     border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb {
     border-radius: 5px;
-    background-color: #363636;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background-color: #404040;
+    background-color: var(--color-accent);
+    box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
 ::-webkit-scrollbar-thumb:horizontal {
-    background-color: #36363690;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 ::-webkit-scrollbar-thumb:horizontal:hover {
-    background-color: #404040;
+    background-color: var(--color-accent);
 }
 
 ::-webkit-scrollbar-corner {
     background-color: transparent !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   V4 — Global Quasar component overrides for legacy views
+   ─────────────────────────────────────────────────────────
+   These map default Quasar surface/border treatments to V4 tokens
+   so views (Autotagger, AudioFeatures, Renamer, TagEditor) inherit
+   the design without per-component rewrites.
+*/
+
+/* Stepper (Autotagger) */
+.q-stepper {
+    background: var(--color-bg) !important;
+    box-shadow: none !important;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+.q-stepper__header {
+    background: var(--color-bg-elevated) !important;
+    border-bottom: 1px solid var(--color-border);
+}
+.q-stepper__step-inner,
+.step {
+    background: var(--color-bg) !important;
+}
+
+/* Filled inputs — used widely */
+.q-field--filled .q-field__control {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-radius: var(--radius-sm) !important;
+}
+.q-field--filled .q-field__control::before {
+    border: none !important;
+}
+.q-field--filled .q-field__control::after {
+    background: var(--color-accent) !important;
+}
+.q-field--focused .q-field__control {
+    background: rgba(0, 210, 191, 0.04) !important;
+}
+
+/* Tab panels */
+.q-tab-panels,
+.q-tab-panel {
+    background: var(--color-bg) !important;
+}
+
+/* Lists & menus */
+.q-list--bordered,
+.q-list.bg-dark,
+.q-list.bg-darker {
+    background: var(--color-bg-elevated) !important;
+    border-color: var(--color-border) !important;
+    border-radius: var(--radius-sm);
+}
+.q-menu {
+    background: var(--color-bg-overlay) !important;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-2) !important;
+}
+
+/* Buttons — primary/accent */
+.q-btn[color="primary"]:not(.q-btn--flat) {
+    box-shadow: 0 0 12px var(--color-accent-glow) !important;
+}
+.q-btn[color="primary"]:not(.q-btn--flat):hover {
+    box-shadow: 0 0 18px var(--color-accent-glow) !important;
+}
+
+/* Toggles & checkboxes — V4 accent */
+.q-toggle__inner--truthy .q-toggle__thumb {
+    background: var(--color-accent) !important;
+}
+
+/* Section titles used across legacy views */
+.text-subtitle2.text-bold.text-primary,
+.text-subtitle2.text-bold.text-uppercase.text-primary {
+    font-family: var(--font-mono) !important;
+    letter-spacing: 0.06em !important;
+    text-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+/* Replace common legacy hardcoded surfaces (caught by class names that still appear) */
+.bg-digtrax-icon,
+.bg-dark {
+    background: var(--color-bg-elevated) !important;
+}
+.bg-darker {
+    background: var(--color-bg-elevated) !important;
+}
+
+/* Quasar separator dark variant */
+.q-separator--dark,
+.q-separator[color="dark"],
+.q-separator[color="darker"] {
+    background: var(--color-border) !important;
+}
+
+/* Q-rating yellow stars → V4 accent */
+.q-rating .text-yellow,
+.q-rating .text-primary {
+    color: var(--color-accent) !important;
+}
+
+/* Cards inside a tab panel or step */
+.q-tab-panel .q-card,
+.q-stepper__step-inner .q-card {
+    background: var(--color-bg-elevated) !important;
+}
+
+/* Q-stepper navigation bar */
+.at-stepper-bar {
+    background: var(--color-bg-elevated) !important;
+    border-top: 1px solid var(--color-border);
+}
+
+
+// =============================================================================
+// LIGHT-THEME READABILITY LAYER
+// -----------------------------------------------------------------------------
+// The dark-theme palette stays as the source of truth for components that
+// hardcode Quasar's `text-grey-N` / `text-white` / `bg-darker` utilities.
+// In dark mode those classes read fine. In light mode they collapse to
+// invisible grey-on-lavender. The block below maps the hardcoded utilities
+// onto V4 fg/border/surface tokens *only* when [data-theme="light"] is
+// active — dark mode is untouched.
+//
+// Long-term fix: refactor each view to use --color-fg-* tokens directly so
+// this layer can shrink. Until then this is the pragmatic patch.
+// =============================================================================
+[data-theme="light"] {
+    // Quasar hardcoded greys → V4 fg scale.
+    // Bigger numbers in Quasar = darker; in our V4 fg scale the only thing
+    // that matters is contrast vs the page bg, which is light. Map the
+    // mid-greys (5-8) to fg-muted, the lightest (1-4) to fg-subtle so the
+    // visual hierarchy survives.
+    .text-grey-1, .text-grey-2, .text-grey-3, .text-grey-4 { color: var(--color-fg-subtle) !important; }
+    .text-grey-5, .text-grey-6, .text-grey-7 { color: var(--color-fg-muted) !important; }
+    .text-grey-8, .text-grey-9, .text-grey-10, .text-grey-13, .text-grey-14 { color: var(--color-fg) !important; }
+
+    // White-on-dark labels (track titles, etc.) become unreadable on a light
+    // page — promote to primary fg.
+    .text-white { color: var(--color-fg) !important; }
+
+    // Quasar input internals — labels and placeholders default to a very
+    // light grey that disappears on light bg.
+    .q-field--filled .q-field__label,
+    .q-field__label,
+    .q-placeholder::placeholder,
+    input::placeholder,
+    textarea::placeholder {
+        color: var(--color-fg-subtle) !important;
+    }
+    .q-field__native,
+    .q-field__input,
+    .q-field--filled .q-field__native {
+        color: var(--color-fg) !important;
+    }
+
+    // Filled q-field bg uses a rgba-white tint that vanishes on light;
+    // give it a subtle dark-on-light contrast.
+    .q-field__control,
+    .q-field--filled .q-field__control {
+        background-color: rgba(26, 20, 56, 0.04) !important;
+    }
+    .q-field--filled .q-field__control:hover {
+        background-color: rgba(26, 20, 56, 0.06) !important;
+    }
+
+    // Toggles, checkboxes, radios — the inner glyph stays white-on-track in
+    // dark mode but needs to be the page bg in light to read against the
+    // accent track.
+    .q-toggle__inner--truthy .q-toggle__thumb,
+    .q-checkbox__inner--truthy svg,
+    .q-checkbox__inner--indet svg {
+        color: var(--color-bg) !important;
+    }
+    // Quasar's "checkbox" helper from this file forces fill black; reset.
+    .checkbox svg { color: var(--color-bg) !important; }
+    .cb svg       { color: var(--color-bg) !important; }
+
+    // Tooltips — keep dark, that's intentional contrast.
+
+    // Separators in Quasar default to nearly-white shades.
+    .q-separator,
+    .q-separator--horizontal,
+    .q-separator--vertical {
+        background-color: var(--color-border) !important;
+    }
+
+    // Dialog / menu surfaces — Quasar uses #1d1d1d-ish dark; force the V4 bg.
+    .q-dialog__inner > .q-card,
+    .q-menu,
+    .q-popup-edit {
+        background-color: var(--color-bg-elevated) !important;
+        color: var(--color-fg) !important;
+    }
+    .q-dialog__inner > .q-card .q-card__section,
+    .q-menu .q-item {
+        color: var(--color-fg);
+    }
+
+    // Q-tabs labels in the Auto Tag settings card.
+    .q-tab__label { color: var(--color-fg-muted); }
+    .q-tab--active .q-tab__label { color: var(--color-accent); }
+
+    // Notify / banner backdrops can use too-dark colors that fight the page.
+    .q-notification--standard {
+        background-color: var(--color-bg-elevated) !important;
+        color: var(--color-fg) !important;
+    }
+
+    // The `.te-file-selected` highlight uses a strong teal — ensure the
+    // selected filename is still legible (V4 fg, not white).
+    .te-file-selected,
+    .te-file-selected * {
+        color: var(--color-fg) !important;
+    }
+
+    // Auto Tag platform tile selected-bg is a teal tint; the tile content
+    // (title, desc, pills) should pick up the V4 fg automatically via the
+    // grey-N mapping above. Belt-and-braces: harden the title color.
+    .at-platform-name { color: var(--color-fg) !important; }
+
+    // Renamer template editor — the dark-mode rule sets bg to rgba(255,255,255,...)
+    // which is invisible on light. Override to a subtle dark-on-light tint.
+    .template-input {
+        background-color: rgba(26, 20, 56, 0.04) !important;
+    }
+
+    // Q-stepper steps explicitly force --color-bg via inline styles in
+    // Autotagger.vue's legacy stepper; the V4 token already handles light bg
+    // so no action needed here — kept as a documentation marker.
 }

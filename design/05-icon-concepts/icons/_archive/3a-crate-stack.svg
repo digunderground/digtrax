@@ -1,0 +1,61 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg3a" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#0e131e"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </radialGradient>
+    <linearGradient id="sleeveBack" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1a2030"/>
+      <stop offset="100%" stop-color="#0e131e"/>
+    </linearGradient>
+    <linearGradient id="sleeveMid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#222a3d"/>
+      <stop offset="100%" stop-color="#161c2c"/>
+    </linearGradient>
+    <linearGradient id="sleeveFront" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2a3349"/>
+      <stop offset="100%" stop-color="#1a2030"/>
+    </linearGradient>
+    <filter id="glow3a" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg3a)"/>
+
+  <!-- crate floor / depth shadow -->
+  <ellipse cx="256" cy="430" rx="180" ry="14" fill="#000" opacity="0.4"/>
+
+  <!-- back sleeve (most leaned) -->
+  <g transform="translate(256 256) rotate(-14) translate(-128 -150)">
+    <rect x="0" y="0" width="256" height="300" rx="6" fill="url(#sleeveBack)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <circle cx="128" cy="150" r="80" fill="#0a0e18" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <circle cx="128" cy="150" r="22" fill="#7a8090" opacity="0.4"/>
+  </g>
+
+  <!-- middle sleeve -->
+  <g transform="translate(256 256) rotate(-4) translate(-128 -150)">
+    <rect x="0" y="0" width="256" height="300" rx="6" fill="url(#sleeveMid)" stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
+    <circle cx="128" cy="150" r="80" fill="#0a0e18" stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
+    <circle cx="128" cy="150" r="22" fill="#b8c0d0" opacity="0.4"/>
+  </g>
+
+  <!-- front sleeve (active) -->
+  <g transform="translate(256 268) rotate(6) translate(-128 -150)">
+    <rect x="0" y="0" width="256" height="300" rx="8" fill="url(#sleeveFront)" stroke="rgba(0,210,191,0.5)" stroke-width="1.5"/>
+    <!-- accent label band -->
+    <rect x="0" y="248" width="256" height="40" fill="#00D2BF" opacity="0.15"/>
+    <rect x="20" y="262" width="68" height="10" rx="2" fill="#00D2BF"/>
+    <rect x="96" y="262" width="40" height="10" rx="2" fill="rgba(255,255,255,0.5)"/>
+    <!-- vinyl peek -->
+    <circle cx="128" cy="140" r="86" fill="#0a0e18" stroke="rgba(255,255,255,0.16)" stroke-width="1"/>
+    <g stroke="rgba(255,255,255,0.06)" fill="none" stroke-width="1">
+      <circle cx="128" cy="140" r="80"/>
+      <circle cx="128" cy="140" r="68"/>
+      <circle cx="128" cy="140" r="56"/>
+      <circle cx="128" cy="140" r="42"/>
+    </g>
+    <circle cx="128" cy="140" r="28" fill="#00D2BF" filter="url(#glow3a)" opacity="0.7"/>
+    <circle cx="128" cy="140" r="28" fill="#00D2BF"/>
+    <circle cx="128" cy="140" r="6" fill="#050811"/>
+  </g>
+</svg>

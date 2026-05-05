@@ -39,7 +39,7 @@
 
 <script lang='ts' setup>
 import { toRefs } from 'vue';
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 

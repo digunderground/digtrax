@@ -15,7 +15,7 @@
 </template>
 
 <script lang='ts' setup>
-import { get1t } from '../scripts/onetagger.js';
+import { get1t } from '../scripts/digtrax.js';
 
 
 const $1t = get1t();

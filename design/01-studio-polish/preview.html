@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OneTagger — V01 Studio Apple Polish</title>
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=dosis:400,600,800|geist:400,500,600|geist-mono:400,500&display=swap" rel="stylesheet">
+<style>
+:root, [data-theme="dark"] {
+  --color-bg: #0c0d0f;
+  --color-bg-elevated: #16181b;
+  --color-bg-overlay: #1d2024;
+  --color-fg: #e8e9ec;
+  --color-fg-muted: #9ba0a8;
+  --color-fg-subtle: #6b6f76;
+  --color-border: #2a2d33;
+  --color-border-strong: #3a3e46;
+  --color-accent: #00D2BF;
+  --color-accent-hover: #1ee5d2;
+  --color-accent-glow: rgba(0, 210, 191, 0.35);
+  --color-success: #4ADE80;
+  --color-warning: #FFB627;
+  --color-danger: #F87171;
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.15);
+  --shadow-2: 0 4px 8px rgba(0,0,0,0.25), 0 12px 24px rgba(0,0,0,0.3);
+  --shadow-3: 0 12px 24px rgba(0,0,0,0.4), 0 32px 64px rgba(0,0,0,0.5);
+}
+[data-theme="light"] {
+  --color-bg: #fafbfc;
+  --color-bg-elevated: #ffffff;
+  --color-bg-overlay: #ffffff;
+  --color-fg: #0c0d0f;
+  --color-fg-muted: #5b6068;
+  --color-fg-subtle: #8b9098;
+  --color-border: #e4e6ea;
+  --color-border-strong: #cdd0d6;
+  --color-accent: #00B5A4;
+  --color-accent-hover: #00d2bf;
+  --color-accent-glow: rgba(0, 181, 164, 0.25);
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-2: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08);
+  --shadow-3: 0 8px 24px rgba(0,0,0,0.1), 0 24px 48px rgba(0,0,0,0.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { font-family: 'Geist', -apple-system, system-ui, sans-serif; font-size: 14px; line-height: 1.5; background: var(--color-bg); color: var(--color-fg); -webkit-font-smoothing: antialiased; }
+body { padding: 0; }
+.font-display { font-family: 'Dosis', sans-serif; font-weight: 600; letter-spacing: -0.01em; }
+.font-mono { font-family: 'Geist Mono', 'SF Mono', monospace; font-feature-settings: 'tnum'; }
+.tabnum { font-feature-settings: 'tnum'; }
+header.review-header { position: sticky; top: 0; z-index: 100; background: var(--color-bg-elevated); border-bottom: 1px solid var(--color-border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+.logo { font-family: 'Dosis', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.02em; }
+.logo .accent { color: var(--color-accent); }
+.review-meta { color: var(--color-fg-muted); font-size: 13px; }
+.theme-toggle { margin-left: auto; display: flex; gap: 4px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 3px; }
+.theme-toggle button { background: transparent; color: var(--color-fg-muted); border: none; padding: 6px 12px; border-radius: 6px; font: inherit; font-size: 12px; cursor: pointer; transition: all 120ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.theme-toggle button.active { background: var(--color-bg-overlay); color: var(--color-fg); }
+main { max-width: 1280px; margin: 0 auto; padding: 32px 24px 96px; }
+section { margin-bottom: 48px; }
+h2 { font-family: 'Dosis', sans-serif; font-weight: 600; font-size: 24px; letter-spacing: -0.01em; margin-bottom: 8px; }
+h3 { font-family: 'Geist', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-fg-muted); margin-bottom: 16px; }
+.section-intro { color: var(--color-fg-muted); margin-bottom: 24px; max-width: 640px; }
+
+/* Tokens grid */
+.token-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.token-card { background: var(--color-bg-elevated); border: 1px solid var(--color-border); border-radius: 14px; padding: 24px; }
+.swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.swatch { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 10px; overflow: hidden; }
+.swatch-color { height: 56px; }
+.swatch-meta { padding: 8px 12px; font-size: 11px; }
+.swatch-name { color: var(--color-fg); font-weight: 500; }
+.swatch-hex { color: var(--color-fg-subtle); font-family: 'Geist Mono', monospace; }
+.track-colors { display: flex; gap: 8px; }
+.track-color { flex: 1; height: 56px; border-radius: 10px; border: 1px solid var(--color-border); position: relative; }
+.track-color::after { content: attr(data-name); position: absolute; bottom: 6px; left: 8px; font-size: 10px; font-weight: 600; color: rgba(0,0,0,0.7); text-transform: uppercase; letter-spacing: 0.04em; }
+.type-specimen { display: flex; flex-direction: column; gap: 16px; }
+.type-row { display: flex; align-items: baseline; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); }
+.type-row:last-child { border: none; padding: 0; }
+.type-label { color: var(--color-fg-subtle); font-size: 11px; font-family: 'Geist Mono', monospace; min-width: 100px; }
+.spacing-scale { display: flex; align-items: flex-end; gap: 8px; }
+.space-bar { background: var(--color-accent); border-radius: 4px; opacity: 0.85; }
+.spacing-label { font-size: 10px; font-family: 'Geist Mono', monospace; color: var(--color-fg-muted); text-align: center; margin-top: 4px; }
+.radii-grid { display: flex; gap: 12px; align-items: flex-end; }
+.radius-box { width: 80px; height: 80px; background: var(--color-bg-overlay); border: 1px solid var(--color-border-strong); display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; font-size: 10px; font-family: 'Geist Mono', monospace; color: var(--color-fg-muted); }
+
+/* App mockup frame */
+.mockup { background: var(--color-bg-elevated); border: 1px solid var(--color-border); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow-2); }
+.mockup-header { background: var(--color-bg); border-bottom: 1px solid var(--color-border); padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+.traffic { display: flex; gap: 6px; }
+.traffic span { width: 12px; height: 12px; border-radius: 50%; }
+.traffic span:nth-child(1) { background: #ff5f56; }
+.traffic span:nth-child(2) { background: #ffbd2e; }
+.traffic span:nth-child(3) { background: #27c93f; }
+.window-title { color: var(--color-fg-muted); font-size: 12px; }
+.mockup-body { display: grid; min-height: 640px; }
+
+/* Quick Tag layout */
+.qt-layout { grid-template-columns: 240px 1fr 320px; }
+.qt-sidebar { background: var(--color-bg-elevated); border-right: 1px solid var(--color-border); padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+.qt-sidebar-section { font-size: 11px; font-weight: 600; color: var(--color-fg-subtle); text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 8px 6px; }
+.sidebar-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; color: var(--color-fg-muted); font-size: 13px; cursor: pointer; transition: all 120ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.sidebar-item:hover { background: var(--color-bg-overlay); color: var(--color-fg); }
+.sidebar-item.active { background: var(--color-bg-overlay); color: var(--color-fg); }
+.sidebar-item.active::before { content: ''; width: 3px; align-self: stretch; background: var(--color-accent); border-radius: 2px; margin-right: 4px; margin-left: -4px; }
+.icon { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; opacity: 0.85; }
+.qt-sidebar .stat { margin-left: auto; font-size: 10px; color: var(--color-fg-subtle); font-family: 'Geist Mono', monospace; }
+.spacer { flex: 1; }
+
+.qt-main { background: var(--color-bg); padding: 20px; overflow: hidden; }
+.toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.input { background: var(--color-bg-elevated); border: 1px solid var(--color-border); border-radius: 8px; padding: 8px 12px; color: var(--color-fg); font: inherit; font-size: 13px; flex: 1; }
+.input:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-glow); }
+.btn { background: var(--color-bg-elevated); border: 1px solid var(--color-border); border-radius: 8px; padding: 8px 14px; color: var(--color-fg); font: inherit; font-size: 13px; cursor: pointer; transition: all 120ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.btn:hover { background: var(--color-bg-overlay); }
+.btn-primary { background: var(--color-accent); color: #002b27; border-color: var(--color-accent); font-weight: 500; }
+.btn-primary:hover { background: var(--color-accent-hover); }
+.track-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.track-tile { background: var(--color-bg-elevated); border: 1px solid var(--color-border); border-radius: 14px; overflow: hidden; cursor: pointer; transition: all 120ms cubic-bezier(0.2, 0.8, 0.2, 1); position: relative; }
+.track-tile:hover { transform: translateY(-1px); border-color: var(--color-border-strong); box-shadow: var(--shadow-1); }
+.track-tile.selected { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-glow); }
+.track-cover { aspect-ratio: 1; background: linear-gradient(135deg, #2a2d33 0%, #1d2024 100%); position: relative; display: flex; align-items: center; justify-content: center; color: var(--color-fg-subtle); font-size: 24px; }
+.track-energy { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+.track-meta { padding: 12px; }
+.track-title { font-weight: 500; font-size: 13px; color: var(--color-fg); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.track-artist { font-size: 12px; color: var(--color-fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.track-data { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+.chip { font-family: 'Geist Mono', monospace; font-size: 10px; padding: 2px 6px; border-radius: 4px; background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-fg-muted); }
+.cue-dots { display: flex; gap: 3px; margin-left: auto; }
+.cue-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+.qt-inspector { background: var(--color-bg-elevated); border-left: 1px solid var(--color-border); padding: 20px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+.insp-cover { aspect-ratio: 1; border-radius: 12px; background: linear-gradient(135deg, #00D2BF 0%, #106c61 100%); display: flex; align-items: center; justify-content: center; color: white; font-family: 'Dosis', sans-serif; font-weight: 800; font-size: 32px; }
+.insp-title { font-family: 'Dosis', sans-serif; font-weight: 600; font-size: 18px; line-height: 1.2; }
+.insp-artist { color: var(--color-fg-muted); font-size: 13px; }
+.field-row { display: flex; flex-direction: column; gap: 4px; padding: 8px 0; border-bottom: 1px solid var(--color-border); }
+.field-row:last-of-type { border: none; }
+.field-label { font-size: 10px; text-transform: uppercase; color: var(--color-fg-subtle); letter-spacing: 0.05em; font-weight: 600; }
+.field-value { font-size: 13px; color: var(--color-fg); }
+.energy-row { display: flex; gap: 4px; }
+.energy-pip { flex: 1; height: 6px; border-radius: 3px; background: var(--color-border); }
+.energy-pip.on { background: var(--color-accent); }
+.legend { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 10px; padding: 12px; }
+.legend-title { font-size: 10px; text-transform: uppercase; color: var(--color-fg-subtle); letter-spacing: 0.05em; font-weight: 600; margin-bottom: 8px; }
+.legend-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 12px; }
+.kbd { font-family: 'Geist Mono', monospace; font-size: 10px; background: var(--color-bg-overlay); border: 1px solid var(--color-border); border-radius: 4px; padding: 2px 6px; color: var(--color-fg-muted); }
+
+.player-bar { background: var(--color-bg-elevated); border-top: 1px solid var(--color-border); padding: 14px 20px; display: grid; grid-template-columns: 240px 1fr 200px; gap: 24px; align-items: center; }
+.player-track { display: flex; align-items: center; gap: 10px; }
+.player-cover { width: 40px; height: 40px; border-radius: 6px; background: linear-gradient(135deg, #00D2BF, #106c61); }
+.player-meta { min-width: 0; }
+.player-title { font-size: 12px; font-weight: 500; color: var(--color-fg); }
+.player-artist { font-size: 11px; color: var(--color-fg-muted); }
+.player-center { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.transport { display: flex; align-items: center; gap: 12px; color: var(--color-fg-muted); }
+.transport-btn { background: transparent; border: none; cursor: pointer; color: inherit; padding: 4px; }
+.transport-btn.play { background: var(--color-accent); color: #002b27; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.waveform { width: 100%; height: 40px; background: var(--color-bg); border-radius: 6px; overflow: hidden; position: relative; display: flex; align-items: center; padding: 0 4px; gap: 1px; }
+.wave-bar { width: 2px; background: var(--color-fg-subtle); border-radius: 1px; }
+.wave-bar.played { background: var(--color-accent); }
+.player-time { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--color-fg-muted); justify-self: end; }
+
+/* Tag Editor (3-pane bulk) */
+.te-layout { grid-template-columns: 280px 1fr 360px; }
+.te-filter-pane { background: var(--color-bg-elevated); border-right: 1px solid var(--color-border); padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.filter-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--color-fg); }
+.filter-chip .x { color: var(--color-fg-subtle); cursor: pointer; }
+.filter-chip.active { background: var(--color-accent-glow); border-color: var(--color-accent); }
+.filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.te-list-pane { background: var(--color-bg); padding: 16px; overflow: auto; }
+.te-list-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); }
+.selection-count { font-family: 'Geist Mono', monospace; font-size: 12px; color: var(--color-accent); }
+.row { display: grid; grid-template-columns: 24px 1fr 80px 60px 80px 80px; gap: 12px; padding: 8px 12px; border-radius: 8px; align-items: center; font-size: 12px; cursor: pointer; }
+.row:hover { background: var(--color-bg-elevated); }
+.row.selected { background: var(--color-bg-elevated); border-left: 3px solid var(--color-accent); padding-left: 9px; }
+.cb { width: 14px; height: 14px; border: 1.5px solid var(--color-border-strong); border-radius: 4px; }
+.cb.checked { background: var(--color-accent); border-color: var(--color-accent); }
+.te-editor-pane { background: var(--color-bg-elevated); border-left: 1px solid var(--color-border); padding: 20px; overflow: auto; }
+.editor-tabs { display: flex; gap: 4px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); }
+.tab { padding: 6px 12px; border-radius: 8px; font-size: 12px; color: var(--color-fg-muted); cursor: pointer; }
+.tab.active { background: var(--color-bg); color: var(--color-fg); }
+.field-bulk { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+.field-bulk-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.bulk-toggle { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--color-fg-muted); }
+.toggle { width: 28px; height: 16px; background: var(--color-border-strong); border-radius: 9999px; position: relative; cursor: pointer; }
+.toggle.on { background: var(--color-accent); }
+.toggle::after { content: ''; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; background: white; border-radius: 50%; transition: left 120ms; }
+.toggle.on::after { left: 14px; }
+.value-state { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: var(--color-bg-overlay); color: var(--color-fg-muted); }
+.value-state.multi { background: rgba(255, 182, 39, 0.15); color: var(--color-warning); }
+
+/* Settings */
+.set-layout { grid-template-columns: 240px 1fr; }
+.set-cats { background: var(--color-bg-elevated); border-right: 1px solid var(--color-border); padding: 16px; }
+.set-content { background: var(--color-bg); padding: 32px; overflow: auto; max-height: 720px; }
+.set-section { margin-bottom: 32px; }
+.set-section-title { font-family: 'Dosis', sans-serif; font-weight: 600; font-size: 18px; margin-bottom: 6px; }
+.set-section-desc { color: var(--color-fg-muted); font-size: 13px; margin-bottom: 16px; }
+.set-row { display: grid; grid-template-columns: 200px 1fr; gap: 24px; padding: 14px 0; border-bottom: 1px solid var(--color-border); align-items: center; }
+.set-row:last-child { border: none; }
+.set-row-label { font-size: 13px; font-weight: 500; }
+.set-row-help { font-size: 11px; color: var(--color-fg-muted); margin-top: 2px; }
+
+.notes { background: var(--color-bg-elevated); border: 1px solid var(--color-border); border-radius: 14px; padding: 24px; color: var(--color-fg-muted); font-size: 13px; line-height: 1.7; }
+.notes h3 { color: var(--color-fg); font-family: 'Dosis', sans-serif; font-weight: 600; font-size: 16px; text-transform: none; letter-spacing: -0.01em; margin-bottom: 12px; }
+.notes ul { padding-left: 20px; }
+.notes li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<header class="review-header">
+  <span class="logo">One<span class="accent">Tagger</span></span>
+  <span class="review-meta">Variant 01 · Studio Apple Polish</span>
+  <div class="theme-toggle">
+    <button class="active" onclick="setTheme('dark', this)">Dark</button>
+    <button onclick="setTheme('light', this)">Light</button>
+  </div>
+</header>
+
+<main>
+
+<section>
+  <h2>Design tokens</h2>
+  <p class="section-intro">The atomic units of the system. Every component composes from these tokens — color, type, spacing, radius, motion. Both themes share the same token names; only the values shift.</p>
+  <div class="token-grid">
+    <div class="token-card">
+      <h3>Surface palette</h3>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="swatch-color" style="background:#0c0d0f"></div><div class="swatch-meta"><div class="swatch-name">bg</div><div class="swatch-hex">#0c0d0f</div></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#16181b"></div><div class="swatch-meta"><div class="swatch-name">bg-elevated</div><div class="swatch-hex">#16181b</div></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#1d2024"></div><div class="swatch-meta"><div class="swatch-name">bg-overlay</div><div class="swatch-hex">#1d2024</div></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#e8e9ec"></div><div class="swatch-meta"><div class="swatch-name">fg</div><div class="swatch-hex">#e8e9ec</div></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#9ba0a8"></div><div class="swatch-meta"><div class="swatch-name">fg-muted</div><div class="swatch-hex">#9ba0a8</div></div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#00D2BF"></div><div class="swatch-meta"><div class="swatch-name">accent</div><div class="swatch-hex">#00D2BF</div></div></div>
+      </div>
+    </div>
+    <div class="token-card">
+      <h3>Track-color palette</h3>
+      <div class="track-colors">
+        <div class="track-color" style="background:#FF6B35" data-name="ORG"></div>
+        <div class="track-color" style="background:#FFB627" data-name="AMB"></div>
+        <div class="track-color" style="background:#C6F432" data-name="LIM"></div>
+        <div class="track-color" style="background:#4ADE80" data-name="MNT"></div>
+        <div class="track-color" style="background:#00D2BF" data-name="CYN"></div>
+        <div class="track-color" style="background:#38BDF8" data-name="SKY"></div>
+        <div class="track-color" style="background:#A78BFA" data-name="VLT"></div>
+        <div class="track-color" style="background:#F472B6" data-name="ROS"></div>
+      </div>
+      <p style="margin-top: 16px; font-size: 12px; color: var(--color-fg-muted);">Used for energy, mood, and custom-tag color coding. Same set in both themes.</p>
+    </div>
+    <div class="token-card" style="grid-column: span 2;">
+      <h3>Typography</h3>
+      <div class="type-specimen">
+        <div class="type-row"><span class="type-label">display 32 / Dosis</span><span class="font-display" style="font-size: 32px;">OneTagger Quick Tag</span></div>
+        <div class="type-row"><span class="type-label">display 24 / Dosis</span><span class="font-display" style="font-size: 24px;">238 Tracks · 47 Selected</span></div>
+        <div class="type-row"><span class="type-label">body 14 / Geist</span><span style="font-size: 14px;">The quick brown fox jumps over the lazy dog. The number 1234567890 in tabular numerals.</span></div>
+        <div class="type-row"><span class="type-label">small 13 / Geist</span><span style="font-size: 13px; color: var(--color-fg-muted);">Soulful house mix · 124 BPM · 7A · Reviewed 2026-05</span></div>
+        <div class="type-row"><span class="type-label">mono 13 / Geist Mono</span><span class="font-mono" style="font-size: 13px;">TXXX:INITIALKEY · /Music/Library/Sun.flac · 4:32</span></div>
+      </div>
+    </div>
+    <div class="token-card">
+      <h3>Spacing scale (4px base)</h3>
+      <div class="spacing-scale">
+        <div><div class="space-bar" style="width: 4px; height: 32px;"></div><div class="spacing-label">1·4</div></div>
+        <div><div class="space-bar" style="width: 8px; height: 32px;"></div><div class="spacing-label">2·8</div></div>
+        <div><div class="space-bar" style="width: 12px; height: 32px;"></div><div class="spacing-label">3·12</div></div>
+        <div><div class="space-bar" style="width: 16px; height: 32px;"></div><div class="spacing-label">4·16</div></div>
+        <div><div class="space-bar" style="width: 20px; height: 32px;"></div><div class="spacing-label">5·20</div></div>
+        <div><div class="space-bar" style="width: 24px; height: 32px;"></div><div class="spacing-label">6·24</div></div>
+        <div><div class="space-bar" style="width: 32px; height: 32px;"></div><div class="spacing-label">7·32</div></div>
+        <div><div class="space-bar" style="width: 48px; height: 32px;"></div><div class="spacing-label">8·48</div></div>
+        <div><div class="space-bar" style="width: 64px; height: 32px;"></div><div class="spacing-label">9·64</div></div>
+      </div>
+    </div>
+    <div class="token-card">
+      <h3>Border radius — continuous curvature</h3>
+      <div class="radii-grid">
+        <div class="radius-box" style="border-radius: 4px;">xs·4</div>
+        <div class="radius-box" style="border-radius: 6px;">sm·6</div>
+        <div class="radius-box" style="border-radius: 10px;">md·10</div>
+        <div class="radius-box" style="border-radius: 14px;">lg·14</div>
+        <div class="radius-box" style="border-radius: 20px;">xl·20</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Quick Tag</h2>
+  <p class="section-intro">The priority feature. New default route on launch. Sidebar replaces top tabs. Track tiles get color-coded energy strips and hot-cue dots. Inspector on the right shows full metadata + a persistent keyboard legend so users stop having to remember their bindings.</p>
+  <div class="mockup">
+    <div class="mockup-header"><div class="traffic"><span></span><span></span><span></span></div><span class="window-title">OneTagger — Quick Tag · /Music/Library/2026-Q2</span></div>
+    <div class="mockup-body qt-layout">
+      <aside class="qt-sidebar">
+        <div class="qt-sidebar-section">Library</div>
+        <div class="sidebar-item"><span class="icon">⌂</span> Recents <span class="stat">12</span></div>
+        <div class="sidebar-item"><span class="icon">★</span> Pinned <span class="stat">4</span></div>
+        <div class="qt-sidebar-section">Tools</div>
+        <div class="sidebar-item active"><span class="icon">⚡</span> Quick Tag <span class="stat">238</span></div>
+        <div class="sidebar-item"><span class="icon">✎</span> Tag Editor</div>
+        <div class="sidebar-item"><span class="icon">⊞</span> Auto Tag</div>
+        <div class="sidebar-item"><span class="icon">∿</span> Audio Features</div>
+        <div class="sidebar-item"><span class="icon">↻</span> Renamer</div>
+        <div class="spacer"></div>
+        <div class="sidebar-item"><span class="icon">?</span> Help</div>
+        <div class="sidebar-item"><span class="icon">⚙</span> Settings</div>
+      </aside>
+      <div class="qt-main">
+        <div class="toolbar">
+          <input class="input" value="house genre = 'tech house'" placeholder="Filter tracks…">
+          <button class="btn">Sort: BPM ↑</button>
+          <button class="btn">Recursive</button>
+          <button class="btn btn-primary">Save Changes (3)</button>
+        </div>
+        <div class="track-grid">
+          <div class="track-tile selected">
+            <div class="track-cover"><span class="track-energy" style="background:#FF6B35"></span>♪</div>
+            <div class="track-meta">
+              <div class="track-title">Sunbeam Nights</div>
+              <div class="track-artist">Aurora Aerial</div>
+              <div class="track-data">
+                <span class="chip">126</span><span class="chip">7A</span>
+                <div class="cue-dots"><span class="cue-dot" style="background:#FF6B35"></span><span class="cue-dot" style="background:#00D2BF"></span><span class="cue-dot" style="background:#A78BFA"></span></div>
+              </div>
+            </div>
+          </div>
+          <div class="track-tile">
+            <div class="track-cover"><span class="track-energy" style="background:#4ADE80"></span>♪</div>
+            <div class="track-meta">
+              <div class="track-title">Glass Cathedral</div>
+              <div class="track-artist">Lyra Pavlova</div>
+              <div class="track-data"><span class="chip">122</span><span class="chip">5A</span><div class="cue-dots"><span class="cue-dot" style="background:#4ADE80"></span><span class="cue-dot" style="background:#00D2BF"></span></div></div>
+            </div>
+          </div>
+          <div class="track-tile selected">
+            <div class="track-cover"><span class="track-energy" style="background:#00D2BF"></span>♪</div>
+            <div class="track-meta">
+              <div class="track-title">Midnight Revolt</div>
+              <div class="track-artist">Komorebi</div>
+              <div class="track-data"><span class="chip">128</span><span class="chip">3A</span><div class="cue-dots"><span class="cue-dot" style="background:#00D2BF"></span><span class="cue-dot" style="background:#F472B6"></span></div></div>
+            </div>
+          </div>
+          <div class="track-tile">
+            <div class="track-cover"><span class="track-energy" style="background:#A78BFA"></span>♪</div>
+            <div class="track-meta">
+              <div class="track-title">Polar Drift Sequence II</div>
+              <div class="track-artist">Hex Volga &amp; Yellowtail</div>
+              <div class="track-data"><span class="chip">130</span><span class="chip">11A</span><div class="cue-dots"><span class="cue-dot" style="background:#A78BFA"></span></div></div>
+            </div>
+          </div>
+          <div class="track-tile selected">
+            <div class="track-cover"><span class="track-energy" style="background:#F472B6"></span>♪</div>
+            <div class="track-meta">
+              <div class="track-title">Saturn's Receipt</div>
+              <div class="track-artist">Onyx Field</div>
+              <div class="track-data"><span class="chip">124</span><span class="chip">9B</span><div class="cue-dots"><span class="cue-dot" style="background:#F472B6"></span><span class="cue-dot" style="background:#FFB627"></span></div></div>
+            </div>
+          </div>
+          <div class="track-tile">
+            <div class="track-cover"><span class="track-energy" style="background:#38BDF8"></span>♪</div>
+            <div class="track-meta">
+              <div class="track-title">Lichen Light</div>
+              <div class="track-artist">Cassiopeia Loop</div>
+              <div class="track-data"><span class="chip">120</span><span class="chip">2A</span><div class="cue-dots"><span class="cue-dot" style="background:#38BDF8"></span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <aside class="qt-inspector">
+        <div class="insp-cover">SR</div>
+        <div>
+          <div class="insp-title">Saturn's Receipt</div>
+          <div class="insp-artist">Onyx Field · Sundial Records · 2025</div>
+        </div>
+        <div>
+          <div class="field-label" style="margin-bottom: 6px;">Energy</div>
+          <div class="energy-row"><div class="energy-pip on"></div><div class="energy-pip on"></div><div class="energy-pip on"></div><div class="energy-pip on"></div><div class="energy-pip"></div></div>
+        </div>
+        <div class="field-row"><span class="field-label">Mood</span><span class="field-value">Dreamy · Hypnotic</span></div>
+        <div class="field-row"><span class="field-label">Genre</span><span class="field-value">Tech House</span></div>
+        <div class="field-row"><span class="field-label">BPM · Key</span><span class="field-value font-mono">124.0 · 9B</span></div>
+        <div class="field-row"><span class="field-label">Path</span><span class="field-value font-mono" style="font-size: 11px;">/Music/Library/2026-Q2/Saturn.flac</span></div>
+        <div class="legend">
+          <div class="legend-title">Quick Bindings</div>
+          <div class="legend-row"><span>Energy 1–5</span><span class="kbd">1 2 3 4 5</span></div>
+          <div class="legend-row"><span>Mood: Dreamy</span><span class="kbd">D</span></div>
+          <div class="legend-row"><span>Mood: Driving</span><span class="kbd">F</span></div>
+          <div class="legend-row"><span>Genre: Tech House</span><span class="kbd">⇧ T</span></div>
+          <div class="legend-row"><span>Skip</span><span class="kbd">→</span></div>
+        </div>
+      </aside>
+    </div>
+    <div class="player-bar">
+      <div class="player-track">
+        <div class="player-cover"></div>
+        <div class="player-meta">
+          <div class="player-title">Saturn's Receipt</div>
+          <div class="player-artist">Onyx Field</div>
+        </div>
+      </div>
+      <div class="player-center">
+        <div class="transport">
+          <button class="transport-btn">⏮</button>
+          <button class="transport-btn play">▶</button>
+          <button class="transport-btn">⏭</button>
+        </div>
+        <div class="waveform">
+          <div class="wave-bar played" style="height: 24px;"></div><div class="wave-bar played" style="height: 32px;"></div><div class="wave-bar played" style="height: 18px;"></div><div class="wave-bar played" style="height: 28px;"></div><div class="wave-bar played" style="height: 35px;"></div><div class="wave-bar played" style="height: 22px;"></div><div class="wave-bar played" style="height: 30px;"></div><div class="wave-bar played" style="height: 36px;"></div><div class="wave-bar played" style="height: 24px;"></div><div class="wave-bar played" style="height: 18px;"></div><div class="wave-bar played" style="height: 28px;"></div><div class="wave-bar played" style="height: 32px;"></div><div class="wave-bar" style="height: 30px;"></div><div class="wave-bar" style="height: 22px;"></div><div class="wave-bar" style="height: 28px;"></div><div class="wave-bar" style="height: 18px;"></div><div class="wave-bar" style="height: 24px;"></div><div class="wave-bar" style="height: 32px;"></div><div class="wave-bar" style="height: 26px;"></div><div class="wave-bar" style="height: 35px;"></div><div class="wave-bar" style="height: 28px;"></div><div class="wave-bar" style="height: 20px;"></div><div class="wave-bar" style="height: 14px;"></div><div class="wave-bar" style="height: 22px;"></div><div class="wave-bar" style="height: 30px;"></div><div class="wave-bar" style="height: 32px;"></div><div class="wave-bar" style="height: 26px;"></div><div class="wave-bar" style="height: 28px;"></div><div class="wave-bar" style="height: 22px;"></div><div class="wave-bar" style="height: 18px;"></div><div class="wave-bar" style="height: 24px;"></div><div class="wave-bar" style="height: 28px;"></div>
+        </div>
+      </div>
+      <div class="player-time">2:14 / 4:32</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Tag Editor — bulk edit</h2>
+  <p class="section-intro">Three-pane layout. Filter pane left (chip-stacked queries), selection grid center (multi-select with live count), editor pane right (each field carries an "apply to all selected" toggle, and "multi-value" state is surfaced clearly).</p>
+  <div class="mockup">
+    <div class="mockup-header"><div class="traffic"><span></span><span></span><span></span></div><span class="window-title">OneTagger — Tag Editor · /Music/Library/2026-Q2</span></div>
+    <div class="mockup-body te-layout">
+      <aside class="te-filter-pane">
+        <h3 style="margin-bottom: 0;">Filter</h3>
+        <input class="input" value="" placeholder="Add filter…">
+        <div class="filter-chips">
+          <span class="filter-chip active">genre = "Tech House" <span class="x">×</span></span>
+          <span class="filter-chip active">bpm 120–130 <span class="x">×</span></span>
+          <span class="filter-chip">has TXXX:INITIALKEY <span class="x">×</span></span>
+        </div>
+        <div style="border-top: 1px solid var(--color-border); padding-top: 16px;">
+          <h3 style="margin-bottom: 8px;">Saved filters</h3>
+          <div class="sidebar-item"><span class="icon">⊙</span> Q2 Tech House Reviews</div>
+          <div class="sidebar-item"><span class="icon">⊙</span> Missing BPM</div>
+          <div class="sidebar-item"><span class="icon">⊙</span> Energy 4+</div>
+        </div>
+      </aside>
+      <div class="te-list-pane">
+        <div class="te-list-toolbar">
+          <span class="selection-count">12 of 47 selected</span>
+          <button class="btn">Select all</button>
+          <button class="btn">Clear</button>
+          <span style="flex:1"></span>
+          <button class="btn">Sort: Title ↑</button>
+        </div>
+        <div class="row selected"><div class="cb checked"></div><div><strong>Sunbeam Nights</strong> · Aurora Aerial</div><span class="font-mono">126.0</span><span class="font-mono">7A</span><span style="color: var(--color-fg-muted);">Tech House</span><span style="color: var(--color-fg-muted);">2025</span></div>
+        <div class="row selected"><div class="cb checked"></div><div><strong>Midnight Revolt</strong> · Komorebi</div><span class="font-mono">128.0</span><span class="font-mono">3A</span><span style="color: var(--color-fg-muted);">Tech House</span><span style="color: var(--color-fg-muted);">2025</span></div>
+        <div class="row selected"><div class="cb checked"></div><div><strong>Saturn's Receipt</strong> · Onyx Field</div><span class="font-mono">124.0</span><span class="font-mono">9B</span><span style="color: var(--color-fg-muted);">Tech House</span><span style="color: var(--color-fg-muted);">2025</span></div>
+        <div class="row"><div class="cb"></div><div><strong>Glass Cathedral</strong> · Lyra Pavlova</div><span class="font-mono">122.0</span><span class="font-mono">5A</span><span style="color: var(--color-fg-muted);">Tech House</span><span style="color: var(--color-fg-muted);">2024</span></div>
+        <div class="row selected"><div class="cb checked"></div><div><strong>Polar Drift II</strong> · Hex Volga</div><span class="font-mono">130.0</span><span class="font-mono">11A</span><span style="color: var(--color-fg-muted);">Tech House</span><span style="color: var(--color-fg-muted);">2026</span></div>
+        <div class="row"><div class="cb"></div><div><strong>Lichen Light</strong> · Cassiopeia Loop</div><span class="font-mono">120.0</span><span class="font-mono">2A</span><span style="color: var(--color-fg-muted);">Tech House</span><span style="color: var(--color-fg-muted);">2024</span></div>
+        <div class="row selected"><div class="cb checked"></div><div><strong>Petrichor</strong> · Aurora Aerial</div><span class="font-mono">125.5</span><span class="font-mono">8A</span><span style="color: var(--color-fg-muted);">Tech House</span><span style="color: var(--color-fg-muted);">2025</span></div>
+      </div>
+      <div class="te-editor-pane">
+        <div class="editor-tabs">
+          <span class="tab active">Common</span>
+          <span class="tab">Custom</span>
+          <span class="tab">Raw</span>
+        </div>
+        <div class="field-bulk">
+          <div class="field-bulk-head"><span class="field-label">Genre</span><div class="bulk-toggle"><div class="toggle on"></div>apply to all</div></div>
+          <input class="input" value="Tech House" style="width: 100%;">
+          <div style="margin-top: 6px;"><span class="value-state">All same</span></div>
+        </div>
+        <div class="field-bulk">
+          <div class="field-bulk-head"><span class="field-label">Year</span><div class="bulk-toggle"><div class="toggle on"></div>apply to all</div></div>
+          <input class="input" value="" placeholder="Multiple — type to overwrite" style="width: 100%;">
+          <div style="margin-top: 6px;"><span class="value-state multi">Multiple values · 2024×1, 2025×4, 2026×1</span></div>
+        </div>
+        <div class="field-bulk">
+          <div class="field-bulk-head"><span class="field-label">Comment</span><div class="bulk-toggle"><div class="toggle on"></div>apply to all</div></div>
+          <input class="input" value="Reviewed 2026-05" style="width: 100%;">
+          <div style="margin-top: 6px;"><span class="value-state">Empty in all</span></div>
+        </div>
+        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--color-border); display: flex; gap: 8px;">
+          <button class="btn">Cancel</button>
+          <button class="btn btn-primary" style="flex:1">Save to 6 files</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Settings — as a route, not a dialog</h2>
+  <p class="section-intro">Sized to the viewport. Sidebar categories like macOS System Settings 2023+. Each category is its own sub-component. Reachable via sidebar or ⌘+,.</p>
+  <div class="mockup">
+    <div class="mockup-header"><div class="traffic"><span></span><span></span><span></span></div><span class="window-title">OneTagger — Settings</span></div>
+    <div class="mockup-body set-layout">
+      <aside class="set-cats">
+        <div class="qt-sidebar-section" style="padding-left: 0;">Categories</div>
+        <div class="sidebar-item"><span class="icon">⌂</span> Library Paths</div>
+        <div class="sidebar-item active"><span class="icon">⚡</span> Quick Tag</div>
+        <div class="sidebar-item"><span class="icon">✎</span> Custom Tags</div>
+        <div class="sidebar-item"><span class="icon">◆</span> Platforms</div>
+        <div class="sidebar-item"><span class="icon">◐</span> Appearance</div>
+        <div class="sidebar-item"><span class="icon">⌨</span> Keybindings</div>
+        <div class="sidebar-item"><span class="icon">⚙</span> Advanced</div>
+      </aside>
+      <div class="set-content">
+        <div class="set-section">
+          <div class="set-section-title">Quick Tag</div>
+          <div class="set-section-desc">Configure the energy, mood, and genre tagging workflow. Changes apply on the next file load.</div>
+          <div class="set-row">
+            <div><div class="set-row-label">Energy 1–5 keybinds</div><div class="set-row-help">Default: number row 1–5</div></div>
+            <div style="display: flex; gap: 6px;">
+              <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span><span class="kbd">4</span><span class="kbd">5</span>
+              <button class="btn" style="margin-left: auto;">Edit</button>
+            </div>
+          </div>
+          <div class="set-row">
+            <div><div class="set-row-label">Energy tag type</div><div class="set-row-help">Star rating writes to POPM; symbol writes to a custom field</div></div>
+            <div style="display: flex; gap: 8px;"><button class="btn btn-primary">Rating</button><button class="btn">Symbol</button></div>
+          </div>
+          <div class="set-row">
+            <div><div class="set-row-label">Mood values</div><div class="set-row-help">Drag to reorder · click to edit binding</div></div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <span class="filter-chip">Dreamy <span class="kbd">D</span></span>
+              <span class="filter-chip">Driving <span class="kbd">F</span></span>
+              <span class="filter-chip">Hypnotic <span class="kbd">G</span></span>
+              <span class="filter-chip">Dark <span class="kbd">H</span></span>
+              <button class="btn">+ Add</button>
+            </div>
+          </div>
+          <div class="set-row">
+            <div><div class="set-row-label">Mood tag frame</div><div class="set-row-help">Where to write mood values per format</div></div>
+            <input class="input" value="TXXX:MOOD" style="max-width: 240px;">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="notes">
+    <h3>What to evaluate</h3>
+    <ul>
+      <li><strong>Quick Tag</strong> — does the sidebar + track grid + inspector + player layout read as the priority feature?</li>
+      <li><strong>Tag Editor bulk pane</strong> — do "apply to all" toggles + multi-value states make the Phase 2 bulk-edit flow obvious?</li>
+      <li><strong>Settings as a route</strong> — does the macOS-style category sidebar feel right vs the current modal dialog?</li>
+      <li><strong>Light vs Dark</strong> — toggle in the header. Both should look polished, not invert-flipped.</li>
+      <li><strong>Density</strong> — too tight? too airy? Body is 14px (smaller than typical) — does it work for a tool that's meant to be looked at for hours?</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<script>
+function setTheme(t, btn) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelectorAll('.theme-toggle button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

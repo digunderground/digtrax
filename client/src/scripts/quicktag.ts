@@ -1,7 +1,7 @@
 import { toRaw } from "vue";
 import { QuickTagSettings } from "./settings";
 import { FrameName, Keybind } from "./utils";
-import { get1t } from "./onetagger";
+import { get1t } from "./digtrax";
 
 class QuickTag { 
     tracks: QTTrack[] = [];
@@ -261,7 +261,7 @@ class QTMultiTrack {
         let output = [];
         for (let i=0; i<this.tracks.length; i++) {
             let out = this.tracks[i].getOutput();
-            if (out.changes.length > 0) {
+            if (out.changes.changes.length > 0) {
                 output.push(out);
             }
         }
@@ -600,17 +600,19 @@ class QTTrack implements QuickTagFile {
         }
 
         return {
-            changes, 
             path: this.path,
-            separators: this.settings.separators,
-            id3v24: this.settings.id3v24,
-            id3CommLang: this.settings.id3CommLang,
+            changes: {
+                changes,
+                separators: this.settings.separators,
+                id3v24: this.settings.id3v24,
+                id3CommLang: this.settings.id3CommLang,
+            },
         };
     }
 
     // Whether the track has changes
     isChanged() {
-        return this.getOutput().changes.length > 0
+        return this.getOutput().changes.changes.length > 0
     }
 
 }

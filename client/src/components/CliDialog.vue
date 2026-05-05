@@ -10,7 +10,7 @@
     </div>
 
     <!-- Run -->
-    <div class='text-body1 text-center q-my-lg'>2. Start <span class='monospace'>onetagger-cli</span></div>
+    <div class='text-body1 text-center q-my-lg'>2. Start <span class='monospace'>digtrax-cli</span></div>
     <div class='monospace code text-center'>
         {{bin}} <span class='monospace'>{{command}}</span> --config config.json --path {{config.path}} <span class='monospace'>{{extra}}</span>
     </div>
@@ -19,7 +19,7 @@
 </template>
 
 <script lang='ts' setup>
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 
 const $1t = get1t();
 
@@ -30,9 +30,9 @@ const { config, command } = defineProps({
 })
 
 // Binary name
-let bin = 'onetagger-cli';
+let bin = 'digtrax-cli';
 if ($1t.info.value.os == 'windows') {
-    bin =  'onetagger-cli.exe';
+    bin =  'digtrax-cli.exe';
 }
 
 </script>

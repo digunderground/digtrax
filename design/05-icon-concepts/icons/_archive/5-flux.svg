@@ -1,0 +1,140 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg5" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#0e131e"/><stop offset="100%" stop-color="#050811"/></radialGradient>
+    <linearGradient id="flux-fill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#00D2BF" stop-opacity="0.5"/>
+      <stop offset="50%" stop-color="#00D2BF" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#00D2BF" stop-opacity="0.5"/>
+    </linearGradient>
+    <linearGradient id="flux-stroke" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="35%"  stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="50%"  stop-color="#1ee5d2" stop-opacity="1"/>
+      <stop offset="65%"  stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.55"/>
+    </linearGradient>
+    <filter id="glow5" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="glowSm5" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="glowLg5" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg5)"/>
+
+  <!-- ambient horizontal glow band -->
+  <ellipse cx="256" cy="256" rx="200" ry="100" fill="#00D2BF" opacity="0.10" filter="url(#glowLg5)"/>
+
+  <!-- baseline guide -->
+  <line x1="64" y1="256" x2="448" y2="256" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="2,8"/>
+
+  <!-- glow halo behind the wave -->
+  <path d="M 64 256
+           C 80 256, 95 248, 110 244
+           C 130 240, 145 234, 160 232
+           C 180 224, 195 208, 210 196
+           C 218 184, 226 168, 232 148
+           C 240 168, 248 184, 256 192
+           C 270 200, 285 198, 300 200
+           C 320 208, 340 218, 360 226
+           C 380 236, 395 244, 410 246
+           C 425 250, 438 254, 448 256
+           L 448 256
+           C 438 258, 425 262, 410 266
+           C 395 268, 380 276, 360 286
+           C 340 294, 320 304, 300 312
+           C 285 314, 270 312, 256 320
+           C 248 328, 240 344, 232 364
+           C 226 344, 218 328, 210 316
+           C 195 304, 180 288, 160 280
+           C 145 278, 130 272, 110 268
+           C 95 264, 80 256, 64 256
+           Z"
+        fill="#00D2BF" opacity="0.30" filter="url(#glow5)"/>
+
+  <!-- filled flowing wave (the body) -->
+  <path d="M 64 256
+           C 80 256, 95 248, 110 244
+           C 130 240, 145 234, 160 232
+           C 180 224, 195 208, 210 196
+           C 218 184, 226 168, 232 148
+           C 240 168, 248 184, 256 192
+           C 270 200, 285 198, 300 200
+           C 320 208, 340 218, 360 226
+           C 380 236, 395 244, 410 246
+           C 425 250, 438 254, 448 256
+           L 448 256
+           C 438 258, 425 262, 410 266
+           C 395 268, 380 276, 360 286
+           C 340 294, 320 304, 300 312
+           C 285 314, 270 312, 256 320
+           C 248 328, 240 344, 232 364
+           C 226 344, 218 328, 210 316
+           C 195 304, 180 288, 160 280
+           C 145 278, 130 272, 110 268
+           C 95 264, 80 256, 64 256
+           Z"
+        fill="url(#flux-fill)" stroke="url(#flux-stroke)" stroke-width="2" stroke-linejoin="round"/>
+
+  <!-- subtle vertical ribs inside (nod to 4B's bar structure) -->
+  <g stroke="#ffffff" stroke-linecap="round" stroke-width="1.5">
+    <line x1="110" y1="246" x2="110" y2="266" opacity="0.30"/>
+    <line x1="160" y1="234" x2="160" y2="278" opacity="0.40"/>
+    <line x1="210" y1="198" x2="210" y2="314" opacity="0.40"/>
+    <line x1="256" y1="194" x2="256" y2="318" opacity="0.35"/>
+    <line x1="300" y1="202" x2="300" y2="310" opacity="0.30"/>
+    <line x1="360" y1="228" x2="360" y2="284" opacity="0.30"/>
+    <line x1="410" y1="248" x2="410" y2="264" opacity="0.30"/>
+  </g>
+  <!-- the cyan emphasis rib at the peak, tagged -->
+  <line x1="232" y1="150" x2="232" y2="362" stroke="#00D2BF" stroke-width="2.5" stroke-linecap="round" opacity="0.5" filter="url(#glowSm5)"/>
+  <line x1="232" y1="150" x2="232" y2="362" stroke="#00D2BF" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+
+  <!-- top + bottom outline highlights for crispness -->
+  <path d="M 64 256
+           C 80 256, 95 248, 110 244
+           C 130 240, 145 234, 160 232
+           C 180 224, 195 208, 210 196
+           C 218 184, 226 168, 232 148
+           C 240 168, 248 184, 256 192
+           C 270 200, 285 198, 300 200
+           C 320 208, 340 218, 360 226
+           C 380 236, 395 244, 410 246
+           C 425 250, 438 254, 448 256"
+        fill="none" stroke="url(#flux-stroke)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 64 256
+           C 80 256, 95 264, 110 268
+           C 130 272, 145 278, 160 280
+           C 180 288, 195 304, 210 316
+           C 218 328, 226 344, 232 364
+           C 240 344, 248 328, 256 320
+           C 270 312, 285 314, 300 312
+           C 320 304, 340 294, 360 286
+           C 380 276, 395 268, 410 266
+           C 425 262, 438 258, 448 256"
+        fill="none" stroke="url(#flux-stroke)" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- TAG pinned to dominant peak (232, 148) — point DOWN, hovering above peak -->
+  <line x1="232" y1="120" x2="232" y2="148" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-dasharray="3,3"/>
+
+  <!-- glow halo behind tag -->
+  <g transform="translate(232 78)">
+    <path d="M 0 42 L -32 8 L -32 -32 Q -32 -42 -22 -42 L 22 -42 Q 32 -42 32 -32 L 32 8 Z"
+          fill="#00D2BF" opacity="0.45" filter="url(#glow5)"/>
+  </g>
+  <!-- tag body, point DOWN -->
+  <g transform="translate(232 78)">
+    <path d="M 0 42 L -32 8 L -32 -32 Q -32 -42 -22 -42 L 22 -42 Q 32 -42 32 -32 L 32 8 Z"
+          fill="#ffffff" stroke="rgba(0,0,0,0.25)" stroke-width="1.5"/>
+    <!-- string hole near top -->
+    <circle cx="0" cy="-26" r="5" fill="#050811"/>
+    <!-- cyan stripe -->
+    <rect x="-26" y="-6" width="52" height="14" fill="#00D2BF" filter="url(#glowSm5)"/>
+    <rect x="-26" y="-6" width="52" height="14" fill="#00D2BF"/>
+  </g>
+
+  <!-- bracket marks left & right (V04 motif) -->
+  <g stroke="#00D2BF" stroke-width="3.5" stroke-linecap="round" fill="none">
+    <path d="M 64 220 L 50 220 L 50 292 L 64 292" filter="url(#glow5)" opacity="0.45"/>
+    <path d="M 64 220 L 50 220 L 50 292 L 64 292"/>
+    <path d="M 448 220 L 462 220 L 462 292 L 448 292" filter="url(#glow5)" opacity="0.45"/>
+    <path d="M 448 220 L 462 220 L 462 292 L 448 292"/>
+  </g>
+</svg>

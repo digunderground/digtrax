@@ -1,46 +1,13 @@
 <template>
     <div>
         <q-layout view="hHh lpR fFf" class="bg-background">
-            <!-- Header -->
-            <q-header class="bg-darker text-white" height-hint="98">
-                <q-toolbar class="row justify-between">
-                    <div class="col-2 row" style="height: 58px">
-                        <img src="./assets/icon.png" height="42" @click="home" class="logo q-mt-sm" :class="{ spin: $1t.lock.value.locked }" />
-                        <LogoText class='q-mt-sm q-ml-xs'></LogoText>
-                    </div>
-                    
-                    <div class="col-8">
-                        <q-tabs style="padding-top: 8px">
-                            <q-route-tab :disable="$1t.lock.value.locked" to="/" class="text-weight-bolder" @click="hideSide">
-                                <q-icon name="mdi-home" size="sm"></q-icon>
-                            </q-route-tab>
-                            <q-route-tab :disable="$1t.lock.value.locked" to="/autotagger" class="text-weight-bolder" @click="hideSide" >Auto tag</q-route-tab >
-                            <q-route-tab :disable="$1t.lock.value.locked" to="/audiofeatures" class="text-weight-bolder" @click="audioFeatures" >Audio features</q-route-tab >
-                            <q-route-tab :disable="$1t.lock.value.locked" to="/quicktag" class="text-weight-bolder" @click="showSide" >Quick Tag</q-route-tab >
-                            <q-route-tab :disable="$1t.lock.value.locked" to="/tageditor" class="text-weight-bolder" @click="hideSide" >Edit Tags</q-route-tab >
-                            <q-route-tab :disable="$1t.lock.value.locked" to="/renamer" class="text-weight-bolder" @click="hideSide" >Auto Rename</q-route-tab>
-                        </q-tabs>
-                    </div>
-
-                    <!-- Settings -->
-                    <div class="col-2 row justify-end items-center">
-                        <q-btn flat round dense icon="mdi-cog" @click="settings = true" ></q-btn>
-                    </div>
-                </q-toolbar>
-            </q-header>
+            <!-- Permanent left nav rail (replaces top tabs) -->
+            <q-drawer :model-value="true" side="left" :width="220" :breakpoint="0" persistent bordered>
+                <DigTraxNavRail></DigTraxNavRail>
+            </q-drawer>
 
             <!-- Help button -->
             <HelpButton v-if='$1t.info.value.ready'></HelpButton>
-
-            <!-- Drawers -->
-            <div v-if='$1t.info.value.ready'>
-                <q-drawer :breakpoint="1000" v-model="left" side="left" :width="200" >
-                    <QuickTagFileBrowser v-if='left'></QuickTagFileBrowser>
-                </q-drawer>
-                <q-drawer :breakpoint="1000" v-model="right" side="right" :width="200" >
-                    <QuickTagRight></QuickTagRight>
-                </q-drawer>
-            </div>
 
             <!-- Content -->
             <q-page-container class="content" ref="contentContainer">
@@ -57,23 +24,16 @@
                 </div>
             </q-page-container>
 
-
-
             <!-- Footer -->
             <q-footer reveal class="bg-darker text-white" v-if="footer">
-                
                 <div v-if='isRoute("quicktag")'>
                     <QuickTagMoods v-if="$1t.quickTag.value.track"></QuickTagMoods>
                     <QuickTagGenreBar v-if="$1t.quickTag.value.track"></QuickTagGenreBar>
                 </div>
 
                 <PlayerBar v-if='($1t.settings.value.tagEditorPlayer && isRoute("tageditor")) || isRoute("quicktag")'></PlayerBar>
-                
             </q-footer>
         </q-layout>
-
-        <!-- Settings -->
-        <Settings v-model="settings" @close="settingsClosed"></Settings>
 
         <!-- Min size dialog -->
         <q-dialog v-model="sizeDialog" persistent>
@@ -82,7 +42,7 @@
                     <div class="text-h6">Warning</div>
                 </q-card-section>
                 <q-card-section>
-                    One Tagger requires atleast 1200x550 window size. Please
+                    DigTrax requires atleast 1200x550 window size. Please
                     resize to continue.
                 </q-card-section>
             </q-card>
@@ -90,21 +50,21 @@
 
         <!-- Update dialog -->
         <q-dialog v-model="updateDialog">
-            <q-card v-if="update">
+            <q-card v-if="update" style="min-width: 400px; max-width: 560px;">
                 <q-card-section class="text-center">
-                    <div class="text-h5">New update available!</div>
+                    <div class="text-h5">New update available</div>
                 </q-card-section>
                 <q-card-section>
                     <div class="text-center">
-                        <div class="text-h6 text-weight-bold">
-                            {{ update.version }}
+                        <div class="text-h6 text-weight-bold q-mb-md">
+                            v{{ update.version }}
                         </div>
-                        <br />
-                        <div v-html="update.changelog" class="text-subtitle1"></div>
+                        <!-- Plaintext, NOT v-html (no XSS surface). Full notes on the GitHub release page. -->
+                        <pre class="update-snippet">{{ update.changelog || 'See the release page for full notes.' }}</pre>
                     </div>
                 </q-card-section>
                 <q-card-section class="justify-center row">
-                    <q-btn color="primary" class="text-black" @click="$1t.url(update!.url)" > Download </q-btn>
+                    <q-btn color="primary" class="text-black" @click="$1t.url(update!.url)">View release</q-btn>
                 </q-card-section>
             </q-card>
         </q-dialog>
@@ -121,102 +81,79 @@ import axios from 'axios';
 
 import { compareVersions } from 'compare-versions';
 import { useQuasar } from 'quasar';
-import {computed, onMounted, onUpdated, ref, watch} from "vue";
+import { onMounted, onUpdated, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { get1t } from "./scripts/onetagger.js";
+import { get1t } from "./scripts/digtrax.js";
 
 import HelpButton from './components/HelpButton.vue';
-import Settings from './components/Settings.vue';
-import QuickTagRight from './components/QuickTagRight.vue';
-import QuickTagGenreBar from './components/QuickTagGenreBar.vue';
-import QuickTagMoods from './components/QuickTagMoods.vue';
-import QuickTagFileBrowser from './components/QuickTagFileBrowser.vue';
 import PlayerBar from './components/PlayerBar.vue';
 import FolderBrowser from './components/FolderBrowser.vue';
-import LogoText from './components/LogoText.vue';
+import DigTraxNavRail from './components/DigTraxNavRail.vue';
+import QuickTagGenreBar from './components/QuickTagGenreBar.vue';
+import QuickTagMoods from './components/QuickTagMoods.vue';
 
 const $1t = get1t();
 const $q = useQuasar();
 const router = useRouter();
 
-const left = ref(false);
-const right = ref(false);
 const footer = ref(false);
-const settings = ref(false);
 const sizeDialog = ref(false);
 const update = ref<undefined | { url: string, version: string, changelog: string }>(undefined);
 const updateDialog = ref(false);
-
-// Hide/Show footer and drawer
-function hideSide() {
-    left.value = false;
-    right.value = false;
-    footer.value = false;
-};
-
-function showSide() {
-    left.value = true;
-    right.value = true;
-    footer.value = true;
-}
-
-// Navigate to homepage
-function home() {
-    if (!$1t.lock.value.locked) {
-        hideSide();
-        router.push("/");
-    }
-};
-
-/// Navigate to audio features
-function audioFeatures() {
-    if (!$1t.lock.value.locked) {
-        hideSide();
-        router.push("/audiofeatures");
-    }
-}
 
 /// Check if is on route
 function isRoute(route: string) {
     return router.currentRoute.value.path.includes(route);
 }
 
-/// Check for updates
+/// Check for updates via the GitHub Releases API.
+/// No custom infra — GitHub serves the latest release as JSON. Update DT_UPDATE_REPO when
+/// the public DigTrax repo is live; until then this 404s and the function silently no-ops.
+const DT_UPDATE_REPO = 'digtrax/digtrax';
+
 async function checkUpdates() {
-    // Fetch latest version info
-    let url = "https://1t.marekkon5.workers.dev/latest";
-    let data = null;
+    const url = `https://api.github.com/repos/${DT_UPDATE_REPO}/releases/latest`;
+    let data: any = null;
     try {
-        let res = await axios.get(url);
+        const res = await axios.get(url, {
+            headers: { 'Accept': 'application/vnd.github+json' },
+            timeout: 5000,
+        });
         data = res.data;
-    } catch (e) {
+    } catch {
+        // 404 / 403 / network — fail silently
         return;
     }
-    if (!data) return;
-    // New version
-    if (compareVersions(data.version, $1t.info.value.version) == 1) {
-        update.value = data;
-        $q.notify({
-            message: `New update available (${data.version})!`,
-            timeout: 10000,
-            progress: true,
-            actions: [
-                {
-                    label: "Show",
-                    handler: () => {
-                        updateDialog.value = true;
-                    },
-                },
-            ],
-            position: 'top-right'
-        });
-    }
-}
+    if (!data || !data.tag_name) return;
 
-// When settings closed
-function settingsClosed() {
-    settings.value = false;
-    $1t.quickTagUnfocus();
+    // GitHub tags are usually `v1.8.0`; strip the `v` prefix for compareVersions
+    const remoteVersion = String(data.tag_name).replace(/^v/, '');
+    let isNewer = false;
+    try {
+        isNewer = compareVersions(remoteVersion, $1t.info.value.version) === 1;
+    } catch {
+        return;
+    }
+    if (!isNewer) return;
+
+    update.value = {
+        version: remoteVersion,
+        url: data.html_url,
+        // Plaintext snippet only — full markdown notes live on the GitHub release page.
+        changelog: (data.body || '').slice(0, 600),
+    };
+    $q.notify({
+        message: `New update available (${remoteVersion})!`,
+        timeout: 10000,
+        progress: true,
+        actions: [
+            {
+                label: "Show",
+                handler: () => { updateDialog.value = true; },
+            },
+        ],
+        position: 'top-right'
+    });
 }
 
 function setWaveformWidth() {
@@ -225,14 +162,14 @@ function setWaveformWidth() {
 
 // Setup
 onMounted(() => {
+    // Quasar dark mode is independent of our V4 token-based theme switcher.
+    // Keep Quasar in dark mode so its built-in components (dialogs, dropdowns, etc.) render dark surfaces.
+    // Light mode for Quasar is a Phase 1 Step 2 follow-up.
     $q.dark.set(true);
 
-    // Handle resize to apply min height/width
     setWaveformWidth();
     window.addEventListener("resize", () => {
-        // Fix waveform
         setWaveformWidth();
-        
         if (window.innerHeight < 550 || window.innerWidth < 1200) {
             sizeDialog.value = true;
         } else {
@@ -240,39 +177,68 @@ onMounted(() => {
         }
     });
 
-    // Show QT sidebar
-    if (isRoute('quicktag')) {
-        showSide();
-    }
-    // Player
-    if (isRoute('tageditor')) {
+    // Show footer where the route warrants it
+    if (isRoute('quicktag') || isRoute('tageditor')) {
         footer.value = true;
     }
 
-    // Wait for app to load to check for updates
     setTimeout(() => checkUpdates(), 5000);
+
+    // First-launch OneTagger config detection. One-shot via localStorage flag.
+    if (!localStorage.getItem(LEGACY_FLAG)) {
+        $1t.send('detectLegacySettings', {});
+    }
 });
 
-// Dont show scrollbar while transition
+// Legacy detect — toast once when OneTagger settings are found on a fresh DigTrax install.
+const LEGACY_FLAG = 'digtrax-legacy-prompt-handled';
+
+watch(() => $1t.legacyConfig.value, (v) => {
+    if (!v.exists || !v.settings) return;
+    if (localStorage.getItem(LEGACY_FLAG)) return;
+    localStorage.setItem(LEGACY_FLAG, '1');
+
+    $q.notify({
+        message: 'Found OneTagger settings — import them?',
+        color: 'dark',
+        position: 'top',
+        timeout: 0,
+        actions: [
+            {
+                label: 'Import',
+                color: 'primary',
+                handler: () => {
+                    if (!v.settings || typeof v.settings !== 'object') return;
+                    // Replace settings + persist + reload so reactive views pick up the new state
+                    Object.assign($1t.settings.value, v.settings);
+                    $1t.saveSettings(false);
+                    $q.notify({
+                        message: 'Imported. Reloading…',
+                        color: 'positive',
+                        timeout: 1500,
+                    });
+                    setTimeout(() => window.location.reload(), 800);
+                }
+            },
+            { label: 'Skip', color: 'grey', handler: () => {} }
+        ]
+    });
+}, { deep: true });
+
+// Update footer visibility on route change
 const contentContainer = ref(null);
 watch(useRoute(), (r) => {
     // @ts-ignore
     contentContainer.value!.$el.style.overflowY = "hidden";
-    if (r.path == '/quicktag') showSide();
-    if (r.path == '/tageditor') {
-        hideSide();
-        footer.value = true;
-    }
+    footer.value = r.path.includes('/quicktag') || r.path.includes('/tageditor');
 });
 
-// Show again scrollbar after transition
 onUpdated(() => {
     setTimeout(() => {
         // @ts-ignore
         contentContainer.value!.$el.style.overflowY = "auto";
     }, 250);
 });
-
 </script>
 
 <style lang='scss'>
@@ -280,10 +246,6 @@ onUpdated(() => {
     overflow-y: auto !important;
     height: calc(100vh);
     min-height: 100vh;
-}
-
-.logo {
-    cursor: pointer;
 }
 
 .fade-enter-active,
@@ -299,25 +261,19 @@ onUpdated(() => {
     opacity: 0;
 }
 
-@keyframes rotation {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.spin {
-    animation: rotation 2s infinite linear;
-}
-
-/* Hide tabs arrow */
-.q-tabs__arrow { 
-    opacity: 0 !important;
-}
-.q-tab__indicator {
-    background-color: var(--q-primary) !important;
-    color: var(--q-primary) !important;
+.update-snippet {
+    text-align: left;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-fg-muted);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 280px;
+    overflow-y: auto;
+    margin: 0;
 }
 </style>

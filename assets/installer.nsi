@@ -9,7 +9,7 @@
 
 ;-------------------------------------------------------------------------------
 ; Constants
-!define PRODUCT_NAME "One Tagger"
+!define PRODUCT_NAME "DigTrax"
 !define PRODUCT_DESCRIPTION "App to tag your music library."
 !define COPYRIGHT "Marekkon5"
 !define PRODUCT_VERSION "1.0.0.0"
@@ -17,9 +17,9 @@
 
 ;-------------------------------------------------------------------------------
 ; Attributes
-Name "One Tagger"
-OutFile "..\dist\OneTagger-windows-setup.exe"
-InstallDir "$PROGRAMFILES\OneTagger"
+Name "DigTrax"
+OutFile "..\dist\DigTrax-windows-setup.exe"
+InstallDir "$PROGRAMFILES\DigTrax"
 RequestExecutionLevel admin ; user|highest|admin
 SetCompressor /SOLID lzma
 
@@ -68,20 +68,20 @@ VIAddVersionKey "FileVersion" "${SETUP_VERSION}"
 
 ;-------------------------------------------------------------------------------
 ; Installer Sections
-Section "One Tagger" OneTagger
+Section "DigTrax" DigTrax
 	; Clean old
-	ExecWait "taskkill /f /im onetagger.exe"
+	ExecWait "taskkill /f /im digtrax.exe"
 	RMDir /r "$INSTDIR\*"
 	; Copy new
 	SetOutPath $INSTDIR
-	File "..\target\release\onetagger.exe"
+	File "..\target\release\digtrax.exe"
 	File "..\assets\icon.ico"
 	File "..\vc_redist.x64.exe"
 	File "..\MicrosoftEdgeWebview2Setup.exe"
 	; Uninstaller
 	WriteUninstaller "$INSTDIR\Uninstall.exe"
-	CreateDirectory "$SMPROGRAMS\OneTagger"
-	CreateShortcut "$SMPROGRAMS\OneTagger\${PRODUCT_NAME}.lnk" "$INSTDIR\onetagger.exe" "" "$INSTDIR\icon.ico"
+	CreateDirectory "$SMPROGRAMS\DigTrax"
+	CreateShortcut "$SMPROGRAMS\DigTrax\${PRODUCT_NAME}.lnk" "$INSTDIR\digtrax.exe" "" "$INSTDIR\icon.ico"
 	; Registry
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \
 		"DisplayName" "${PRODUCT_NAME}"
@@ -103,9 +103,9 @@ SectionEnd
 ;-------------------------------------------------------------------------------
 ; Uninstaller Sections
 Section "Uninstall"
-	Delete "$SMPROGRAMS\OneTagger\${PRODUCT_NAME}.lnk"
+	Delete "$SMPROGRAMS\DigTrax\${PRODUCT_NAME}.lnk"
 	Delete "$DESKTOP\${PRODUCT_NAME}.lnk" 
-	RMDir "$SMPROGRAMS\OneTagger"
+	RMDir "$SMPROGRAMS\DigTrax"
 	Delete "$INSTDIR\*"
 	RMDir /r "$INSTDIR\*"
 	RMDir "$INSTDIR"
@@ -114,5 +114,5 @@ SectionEnd
 ;------
 ; Desktop icon
 Function desktopshortcut
-	CreateShortcut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\onetagger.exe" "" "$INSTDIR\icon.ico"
+	CreateShortcut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\digtrax.exe" "" "$INSTDIR\icon.ico"
 FunctionEnd

@@ -35,7 +35,7 @@
 import { Dialog } from 'quasar';
 import { computed } from 'vue';
 import { AutotaggerConfig } from '../scripts/autotagger';
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 
 const $1t = get1t();
 

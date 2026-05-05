@@ -57,7 +57,7 @@
                     :model-value='$1t.config.value.tags.includes(tag.tag)'
                     @update:model-value="toggleTag(tag.tag)"
                 >
-                    <q-icon v-if='tag.tooltip' name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs mt-n2' >
+                    <q-icon v-if='tag.tooltip' name='mdi-help-circle-outline text-grey-6' class='digtrax-tooltip q-mx-xs mt-n2' >
                         <q-tooltip>{{tag.tooltip}}</q-tooltip>
                     </q-icon>
                 </q-checkbox>
@@ -77,7 +77,7 @@
 </template>
 
 <script lang='ts' setup>
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 import { SUPPORTED_TAGS, SupportedTag } from '../scripts/autotagger';
 import PlaylistDropZone from './PlaylistDropZone.vue';
 

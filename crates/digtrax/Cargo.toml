@@ -1,0 +1,50 @@
+[package]
+name = "digtrax"
+version = "1.7.0"
+edition = "2021"
+description = "App to tag your music library."
+keywords = ["gui", "audio"]
+categories = ["multimedia::audio"]
+
+[dependencies]
+log = "0.4"
+anyhow = "1.0"
+urlencoding = "2.1"
+
+tao = { version = "0.34", features = ["rwh_05"] }
+wry = { version = "0.52", features = ["devtools"] }
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+
+digtrax-ui = { path = "../digtrax-ui" }
+digtrax-tag = { path = "../digtrax-tag" }
+digtrax-shared = { path = "../digtrax-shared" }
+digtrax-tagger = { path = "../digtrax-tagger" }
+digtrax-player = { path = "../digtrax-player" }
+digtrax-autotag = { path = "../digtrax-autotag" }
+digtrax-renamer = { path = "../digtrax-renamer" }
+digtrax-playlist = { path = "../digtrax-playlist" }
+digtrax-platforms = { path = "../digtrax-platforms" }
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
+# MacOS specific
+[target.'cfg(target_os = "macos")'.dependencies]
+muda = "0.16"
+native-dialog = "0.9.0"
+
+
+[package.metadata.bundle]
+name = "DigTrax"
+identifier = "com.digtrax.app"
+icon = ["assets/32x32.png", "assets/128x128.png", "assets/128x128@2x.png",
+    "assets/icon.icns", "assets/icon.ico"]
+version = "1.7.0"
+resources = []
+copyright = "Copyright (c) Marekkon5 2022. All rights reserved."
+category = "Music"
+short_description = "Tool to tag your audio library."
+long_description = """
+Tool to tag your audio library.
+"""

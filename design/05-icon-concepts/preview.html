@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DigTrax — Final Icon</title>
+<style>
+:root{
+  --bg:#050811; --bg-elev:#0e131e; --bg-overlay:#161c2c;
+  --fg:#ffffff; --fg-muted:#b8c0d0; --fg-subtle:#7a8090;
+  --accent:#00D2BF; --accent-hover:#1ee5d2;
+  --accent-glow:rgba(0,210,191,0.6);
+  --border:rgba(255,255,255,0.08); --border-strong:rgba(255,255,255,0.16);
+  --font-mono:"JetBrains Mono","SF Mono","Berkeley Mono","Fira Code",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  padding:64px 32px 96px;min-height:100vh;
+  background:radial-gradient(ellipse at top,#0e131e,#050811 70%);
+  color:var(--fg);
+  font-family:var(--font-mono);
+  font-size:13px;letter-spacing:0.02em;
+  -webkit-font-smoothing:antialiased;
+}
+.container{max-width:1100px;margin:0 auto}
+.header{margin-bottom:48px;text-align:center}
+h1{font-size:34px;margin:0 0 12px;letter-spacing:0.04em;text-transform:uppercase;font-weight:700}
+h1 .accent{color:var(--accent);text-shadow:0 0 24px var(--accent-glow)}
+.subtitle{color:var(--fg-muted);font-size:14px;margin:0 0 6px}
+.dim{color:var(--fg-subtle);font-size:11px;letter-spacing:0.10em;text-transform:uppercase;margin:0}
+.lockup{
+  display:inline-flex;align-items:center;gap:10px;
+  margin-top:18px;padding:8px 16px;
+  background:rgba(0,210,191,0.10);
+  border:1px solid rgba(0,210,191,0.45);
+  border-radius:24px;
+  font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:var(--accent);font-weight:700;
+}
+.lockup .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+
+.hero-card{
+  background:linear-gradient(180deg,rgba(255,255,255,0.025),rgba(255,255,255,0.01));
+  border:1px solid rgba(0,210,191,0.32);
+  border-radius:24px;
+  padding:48px;
+  display:grid;
+  grid-template-columns:420px 1fr;
+  gap:48px;
+  align-items:center;
+  margin-bottom:32px;
+}
+.hero-card .icon-hero{
+  width:420px;height:420px;display:block;
+  background:radial-gradient(ellipse at center,rgba(0,210,191,0.05),transparent 65%);
+  border-radius:18px;
+  padding:8px;
+}
+.hero-card .info{display:flex;flex-direction:column;gap:14px}
+.hero-card .id{font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.hero-card .name{font-size:22px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;margin:0;line-height:1.2}
+.hero-card .desc{font-size:13px;color:var(--fg-muted);line-height:1.6;margin:0}
+.hero-card ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.hero-card li{
+  font-size:11px;color:var(--fg-muted);letter-spacing:0.04em;
+  padding-left:16px;position:relative;line-height:1.5;
+}
+.hero-card li::before{
+  content:"//";color:var(--accent);position:absolute;left:0;font-weight:700;
+}
+
+.section-title{
+  margin:48px 0 20px;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;
+  color:var(--fg-subtle);display:flex;align-items:center;gap:12px;
+}
+.section-title::before{content:"//";color:var(--accent)}
+.section-title .rule{flex:1;height:1px;background:var(--border)}
+
+.size-strip{
+  display:flex;gap:32px;align-items:flex-end;justify-content:center;flex-wrap:wrap;
+  padding:32px;
+  background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02));
+  border:1px solid var(--border);border-radius:18px;
+}
+.size-block{display:flex;flex-direction:column;align-items:center;gap:10px}
+.size-block svg{display:block}
+.size-block .lbl{font-size:9px;letter-spacing:0.10em;color:var(--fg-subtle);text-transform:uppercase}
+
+/* dock simulation */
+.dock-sim{
+  margin-top:32px;padding:24px;
+  background:rgba(255,255,255,0.025);
+  border:1px solid var(--border);
+  border-radius:24px;
+  backdrop-filter:blur(20px);
+}
+.dock-row{
+  display:flex;gap:16px;align-items:center;justify-content:center;
+  padding:16px 24px;
+  background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));
+  border:1px solid var(--border);border-radius:20px;
+}
+.dock-row svg{width:64px;height:64px;display:block}
+.dock-row .placeholder{
+  width:64px;height:64px;border-radius:14px;
+  background:linear-gradient(135deg,#222,#444);
+  border:1px solid rgba(255,255,255,0.08);
+}
+
+.next-card{
+  margin-top:32px;
+  padding:24px 28px;
+  background:rgba(0,210,191,0.06);
+  border:1px solid rgba(0,210,191,0.30);
+  border-radius:14px;
+}
+.next-card h3{
+  margin:0 0 8px;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:var(--accent);font-weight:700;
+}
+.next-card h3::before{content:"// NEXT · ";color:var(--fg-subtle)}
+.next-card p{margin:0;font-size:12px;color:var(--fg-muted);line-height:1.6}
+.next-card code{color:var(--accent);font-weight:700;letter-spacing:0.04em}
+
+@media (max-width:900px){
+  .hero-card{grid-template-columns:1fr}
+  .hero-card .icon-hero{width:300px;height:300px;margin:0 auto}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="bgFinal" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#0e131e"/><stop offset="100%" stop-color="#050811"/></radialGradient>
+    <radialGradient id="cutoutGradFinal" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#0e131e"/>
+      <stop offset="60%" stop-color="#070a13"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </radialGradient>
+    <filter id="glowFinal" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="glowSmFinal" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+
+    <symbol id="sym-final" viewBox="0 0 512 512">
+      <rect width="512" height="512" rx="120" fill="url(#bgFinal)"/>
+      <circle cx="256" cy="256" r="180" fill="#00D2BF" opacity="0.07" filter="url(#glowFinal)"/>
+      <g fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round">
+        <circle cx="256" cy="256" r="172" opacity="0.18"/>
+        <circle cx="256" cy="256" r="138" opacity="0.22"/>
+        <circle cx="256" cy="256" r="104" opacity="0.18"/>
+        <circle cx="256" cy="256" r="68"  opacity="0.22"/>
+      </g>
+      <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="6" opacity="0.55" filter="url(#glowFinal)"/>
+      <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="3.5"/>
+      <circle cx="256" cy="256" r="18" fill="#00D2BF" filter="url(#glowSmFinal)"/>
+      <circle cx="256" cy="256" r="11" fill="#ffffff"/>
+      <circle cx="256" cy="256" r="4" fill="#050811"/>
+      <g transform="translate(370 256)">
+        <path d="M -49 0 L -23 -36 Q -19 -39 -14 -39 L 63 -39 Q 68 -39 68 -34 L 68 34 Q 68 39 63 39 L -14 39 Q -19 39 -23 36 Z"
+              fill="#00D2BF" opacity="0.40" filter="url(#glowSmFinal)"/>
+        <path d="M -49 0 L -23 -36 Q -19 -39 -14 -39 L 63 -39 Q 68 -39 68 -34 L 68 34 Q 68 39 63 39 L -14 39 Q -19 39 -23 36 Z"
+              fill="#ffffff" stroke="rgba(0,0,0,0.30)" stroke-width="1.75" stroke-linejoin="round"/>
+        <g filter="url(#glowFinal)" opacity="0.42" fill="#00D2BF">
+          <rect x="-13" y="-7"  width="5" height="14" rx="1.5"/>
+          <rect x="-6"  y="-13" width="5" height="26" rx="1.5"/>
+          <rect x="1"   y="-9"  width="5" height="18" rx="1.5"/>
+          <rect x="8"   y="-21" width="5" height="42" rx="1.5"/>
+          <rect x="15"  y="-16" width="5" height="32" rx="1.5"/>
+          <rect x="22"  y="-30" width="5" height="60" rx="1.5"/>
+          <rect x="29"  y="-25" width="5" height="50" rx="1.5"/>
+          <rect x="36"  y="-19" width="5" height="38" rx="1.5"/>
+          <rect x="43"  y="-13" width="5" height="26" rx="1.5"/>
+          <rect x="50"  y="-7"  width="5" height="14" rx="1.5"/>
+          <rect x="57"  y="-4"  width="5" height="8"  rx="1.5"/>
+        </g>
+        <g fill="url(#cutoutGradFinal)">
+          <rect x="-13" y="-7"  width="5" height="14" rx="1.5"/>
+          <rect x="-6"  y="-13" width="5" height="26" rx="1.5"/>
+          <rect x="1"   y="-9"  width="5" height="18" rx="1.5"/>
+          <rect x="8"   y="-21" width="5" height="42" rx="1.5"/>
+          <rect x="15"  y="-16" width="5" height="32" rx="1.5"/>
+          <rect x="22"  y="-30" width="5" height="60" rx="1.5"/>
+          <rect x="29"  y="-25" width="5" height="50" rx="1.5"/>
+          <rect x="36"  y="-19" width="5" height="38" rx="1.5"/>
+          <rect x="43"  y="-13" width="5" height="26" rx="1.5"/>
+          <rect x="50"  y="-7"  width="5" height="14" rx="1.5"/>
+          <rect x="57"  y="-4"  width="5" height="8"  rx="1.5"/>
+        </g>
+        <g fill="none" stroke="rgba(0,210,191,0.55)" stroke-width="1.2" filter="url(#glowSmFinal)">
+          <rect x="-13" y="-7"  width="5" height="14" rx="1.5"/>
+          <rect x="-6"  y="-13" width="5" height="26" rx="1.5"/>
+          <rect x="1"   y="-9"  width="5" height="18" rx="1.5"/>
+          <rect x="8"   y="-21" width="5" height="42" rx="1.5"/>
+          <rect x="15"  y="-16" width="5" height="32" rx="1.5"/>
+          <rect x="22"  y="-30" width="5" height="60" rx="1.5"/>
+          <rect x="29"  y="-25" width="5" height="50" rx="1.5"/>
+          <rect x="36"  y="-19" width="5" height="38" rx="1.5"/>
+          <rect x="43"  y="-13" width="5" height="26" rx="1.5"/>
+          <rect x="50"  y="-7"  width="5" height="14" rx="1.5"/>
+          <rect x="57"  y="-4"  width="5" height="8"  rx="1.5"/>
+        </g>
+        <g fill="none" stroke="rgba(0,210,191,0.9)" stroke-width="0.5">
+          <rect x="-13" y="-7"  width="5" height="14" rx="1.5"/>
+          <rect x="-6"  y="-13" width="5" height="26" rx="1.5"/>
+          <rect x="1"   y="-9"  width="5" height="18" rx="1.5"/>
+          <rect x="8"   y="-21" width="5" height="42" rx="1.5"/>
+          <rect x="15"  y="-16" width="5" height="32" rx="1.5"/>
+          <rect x="22"  y="-30" width="5" height="60" rx="1.5"/>
+          <rect x="29"  y="-25" width="5" height="50" rx="1.5"/>
+          <rect x="36"  y="-19" width="5" height="38" rx="1.5"/>
+          <rect x="43"  y="-13" width="5" height="26" rx="1.5"/>
+          <rect x="50"  y="-7"  width="5" height="14" rx="1.5"/>
+          <rect x="57"  y="-4"  width="5" height="8"  rx="1.5"/>
+        </g>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="container">
+
+<header class="header">
+  <h1>DIG<span class="accent">TRAX</span> — FINAL ICON</h1>
+  <p class="subtitle">C-CUTOUT cutout aesthetic × C-BARS waveform</p>
+  <p class="dim">V04 palette · #050811 / #FFFFFF / #00D2BF</p>
+  <div class="lockup"><span class="dot"></span>LOCKED</div>
+</header>
+
+<div class="hero-card">
+  <svg class="icon-hero" viewBox="0 0 512 512"><use href="#sym-final"/></svg>
+  <div class="info">
+    <span class="id">[ FINAL ] · DIGTRAX</span>
+    <h3 class="name">Bar Cutouts in Tag</h3>
+    <p class="desc">Centered vinyl with concentric grooves and a glowing cyan accent ring. A larger rounded luggage-tag overlaps the rings, point facing the spindle, with the right edge slightly breaking the outer circle. Inside the tag, 11 vertical cutouts of varied heights — punched through the white body — reveal the dark navy beneath, with cyan light leaking through each cut.</p>
+    <ul>
+      <li>Grooves dead-center; cyan accent ring at r=138; large white spindle</li>
+      <li>Tag size 118×78 (+17%) with rounded corners (radius 4–5)</li>
+      <li>11 EQ-style frequency-bar cutouts replace the cyan-stripe wave</li>
+      <li>Each bar has a cyan back-glow, dark-navy fill, and lit cyan rim — the "lit from within" cutout look</li>
+      <li>Asymmetric organic heights → reads as a real spectrum analyzer frame</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section-title">SIZE TEST<span class="rule"></span></div>
+<div class="size-strip">
+  <div class="size-block">
+    <svg width="256" height="256" viewBox="0 0 512 512"><use href="#sym-final"/></svg>
+    <span class="lbl">Hero 256</span>
+  </div>
+  <div class="size-block">
+    <svg width="128" height="128" viewBox="0 0 512 512"><use href="#sym-final"/></svg>
+    <span class="lbl">App 128</span>
+  </div>
+  <div class="size-block">
+    <svg width="64" height="64" viewBox="0 0 512 512"><use href="#sym-final"/></svg>
+    <span class="lbl">Dock 64</span>
+  </div>
+  <div class="size-block">
+    <svg width="32" height="32" viewBox="0 0 512 512"><use href="#sym-final"/></svg>
+    <span class="lbl">Menu 32</span>
+  </div>
+  <div class="size-block">
+    <svg width="16" height="16" viewBox="0 0 512 512"><use href="#sym-final"/></svg>
+    <span class="lbl">Tab 16</span>
+  </div>
+</div>
+
+<div class="section-title">DOCK SIMULATION<span class="rule"></span></div>
+<div class="dock-sim">
+  <div class="dock-row">
+    <div class="placeholder"></div>
+    <div class="placeholder"></div>
+    <svg viewBox="0 0 512 512"><use href="#sym-final"/></svg>
+    <div class="placeholder"></div>
+    <div class="placeholder"></div>
+    <div class="placeholder"></div>
+  </div>
+</div>
+
+<div class="next-card">
+  <h3>EXPORT BUNDLE — DELIVERED</h3>
+  <p>
+    Everything is rendered and ready under <code>exports/</code>:
+    <code>icns/icon.icns</code> · <code>ico/icon.ico</code> · <code>ico/installer-icon.ico</code>
+    · <code>png/icon-{16,32,48,64,128,256,512,1024}.png</code>
+    · <code>png/32x32.png</code> · <code>png/128x128.png</code> · <code>png/128x128@2x.png</code>
+    · <code>png/digtrax-logo-github.png</code>.
+    Editable sources are in <code>sources/</code>. See <code>README.md</code> for the install commands when the full repo is mounted.
+  </p>
+</div>
+
+</div>
+</body>
+</html>

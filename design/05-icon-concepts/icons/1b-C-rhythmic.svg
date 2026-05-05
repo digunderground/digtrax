@@ -1,0 +1,51 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgC" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#0e131e"/><stop offset="100%" stop-color="#050811"/></radialGradient>
+    <linearGradient id="waveC" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#00D2BF" stop-opacity="0.6"/>
+      <stop offset="35%"  stop-color="#1ee5d2" stop-opacity="1"/>
+      <stop offset="65%"  stop-color="#1ee5d2" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#00D2BF" stop-opacity="0.6"/>
+    </linearGradient>
+    <filter id="glowC" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="glowSmC" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bgC)"/>
+
+  <!-- ambient -->
+  <circle cx="256" cy="256" r="180" fill="#00D2BF" opacity="0.07" filter="url(#glowC)"/>
+
+  <!-- grooves -->
+  <g fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round">
+    <circle cx="256" cy="256" r="172" opacity="0.18"/>
+    <circle cx="256" cy="256" r="138" opacity="0.22"/>
+    <circle cx="256" cy="256" r="104" opacity="0.18"/>
+    <circle cx="256" cy="256" r="68"  opacity="0.22"/>
+  </g>
+  <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="6" opacity="0.55" filter="url(#glowC)"/>
+  <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="3.5"/>
+
+  <!-- spindle -->
+  <circle cx="256" cy="256" r="18" fill="#00D2BF" filter="url(#glowSmC)"/>
+  <circle cx="256" cy="256" r="11" fill="#ffffff"/>
+  <circle cx="256" cy="256" r="4" fill="#050811"/>
+
+  <!-- LARGER TAG (~17% bigger) with slightly rounded corners.
+       Original: 100×66, point at -42, body x=-16..58, y=±33
+       Larger:   118×78, point at -49, body x=-19..68, y=±39 -->
+  <g transform="translate(370 256)">
+    <path d="M -49 0 L -23 -36 Q -19 -39 -14 -39 L 63 -39 Q 68 -39 68 -34 L 68 34 Q 68 39 63 39 L -14 39 Q -19 39 -23 36 Z"
+          fill="#00D2BF" opacity="0.40" filter="url(#glowSmC)"/>
+    <path d="M -49 0 L -23 -36 Q -19 -39 -14 -39 L 63 -39 Q 68 -39 68 -34 L 68 34 Q 68 39 63 39 L -14 39 Q -19 39 -23 36 Z"
+          fill="#ffffff" stroke="rgba(0,0,0,0.30)" stroke-width="1.75" stroke-linejoin="round"/>
+
+    <!-- WAVEFORM C — RHYTHMIC MULTI-PEAK (three peaks of varying heights, beat-like) -->
+    <!-- Wave area for larger tag: x = -10 to 62, y range ±28 -->
+    <path d="M -10 0 C -7 -3, -4 -8, -1 -14 C 2 -18, 5 -16, 8 -10 C 11 -4, 13 0, 15 -2 C 17 -8, 19 -16, 21 -22 C 23 -26, 26 -24, 28 -18 C 30 -10, 32 -2, 34 -4 C 36 -10, 38 -16, 41 -18 C 44 -16, 47 -10, 50 -4 C 53 -2, 57 -1, 60 0 C 61 0, 62 0, 62 0"
+          fill="none" stroke="#00D2BF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" filter="url(#glowC)" opacity="0.6"/>
+    <path d="M -10 0 C -7 -3, -4 -8, -1 -14 C 2 -18, 5 -16, 8 -10 C 11 -4, 13 0, 15 -2 C 17 -8, 19 -16, 21 -22 C 23 -26, 26 -24, 28 -18 C 30 -10, 32 -2, 34 -4 C 36 -10, 38 -16, 41 -18 C 44 -16, 47 -10, 50 -4 C 53 -2, 57 -1, 60 0 C 61 0, 62 0, 62 0"
+          fill="none" stroke="#050811" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+    <path d="M -10 0 C -7 -3, -4 -8, -1 -14 C 2 -18, 5 -16, 8 -10 C 11 -4, 13 0, 15 -2 C 17 -8, 19 -16, 21 -22 C 23 -26, 26 -24, 28 -18 C 30 -10, 32 -2, 34 -4 C 36 -10, 38 -16, 41 -18 C 44 -16, 47 -10, 50 -4 C 53 -2, 57 -1, 60 0 C 61 0, 62 0, 62 0"
+          fill="none" stroke="url(#waveC)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

@@ -66,17 +66,17 @@
                         </div>
                         <div class='row text-subtitle2 text-grey-4 q-pt-sm' style='width: 100%; margin-left: 16.8%; line-height: 24px'>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Album Art / Cover</span></q-badge>
-                                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
+                                <q-icon name='mdi-help-circle-outline text-grey-6' class='digtrax-tooltip q-mx-xs'>
                                     <q-tooltip>Resolution is platform dependent</q-tooltip>
                                 </q-icon>                            
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Title</span></q-badge> , <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Version</span></q-badge>
-                                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
+                                <q-icon name='mdi-help-circle-outline text-grey-6' class='digtrax-tooltip q-mx-xs'>
                                     <q-tooltip>Available from:  • Beatport  • Beatsource  • Traxsource</q-tooltip>
                                 </q-icon>
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-uppercase text-grey-3'>ISRC</span></q-badge>
-                                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
+                                <q-icon name='mdi-help-circle-outline text-grey-6' class='digtrax-tooltip q-mx-xs'>
                                     <q-tooltip>Available from:  • Beatport  • Beatsource  • MusicBrainz  • Spotify</q-tooltip>
                                 </q-icon>
                             </div>
@@ -84,12 +84,12 @@
                             
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Album</span></q-badge></div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-uppercase text-grey-3'>BPM</span></q-badge>
-                                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
+                                <q-icon name='mdi-help-circle-outline text-grey-6' class='digtrax-tooltip q-mx-xs'>
                                     <q-tooltip>Available from:  • Beatport  • Beatsource  • Juno Download  • Traxsource</q-tooltip>
                                 </q-icon>
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Genre</span></q-badge> , <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Style / Subgenre</span></q-badge>
-                                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
+                                <q-icon name='mdi-help-circle-outline text-grey-6' class='digtrax-tooltip q-mx-xs'>
                                     <q-tooltip>Style is available from:  • Discogs  • Bandcamp   /   Subgenre from:  • Beatport</q-tooltip>
                                 </q-icon>
                             </div>
@@ -111,7 +111,7 @@
                                 </q-icon>
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Publish Date</span></q-badge>
-                                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
+                                <q-icon name='mdi-help-circle-outline text-grey-6' class='digtrax-tooltip q-mx-xs'>
                                     <q-tooltip>Available from:  • Beatport</q-tooltip>
                                 </q-icon><q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Release Date</span></q-badge></div>
                             
@@ -121,7 +121,7 @@
                                 </q-icon>
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-uppercase text-grey-3'>URL</span></q-badge> , <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Other</span></q-badge>
-                                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
+                                <q-icon name='mdi-help-circle-outline text-grey-6' class='digtrax-tooltip q-mx-xs'>
                                     <q-tooltip>Specific tags only for some platforms:  • Beatport  • Discogs</q-tooltip>
                                 </q-icon>
                             </div>
@@ -745,7 +745,7 @@ import DJAppIcons from './DJAppIcons.vue';
 import RenamerTokenName from './RenamerTokenName.vue';
 import HelpRenamerExamples from './HelpRenamerExamples.vue';
 import { computed, ref, watch } from 'vue';
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 import { useRoute } from 'vue-router';
 
 const $1t = get1t();
@@ -837,25 +837,37 @@ watch(() => $1t.helpDialog.value.open, () => {
 }
 
 .doc-link {
-    color: var(--q-color-primary);    
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-decoration-color: rgba(0, 210, 191, 0.4);
+    text-underline-offset: 3px;
 }
 
 .doc-link:hover {
-    color: #f0f0f0;    
+    color: var(--color-accent-hover);
+    text-decoration-color: var(--color-accent);
 }
 
 .renamer-doc-token {
-    cursor: pointer
+    cursor: pointer;
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    background: rgba(0, 210, 191, 0.08);
+    padding: 1px 6px;
+    border-radius: var(--radius-xs);
 }
 
 .renamer-doc-token:hover {
-    font-weight: bold;
+    background: rgba(0, 210, 191, 0.16);
+    box-shadow: 0 0 8px var(--color-accent-glow);
 }
 .keybind-icon {
-    padding: 4px;
-    border-radius: 2px;
-    background: #262828;
+    padding: 3px 7px;
+    border-radius: var(--radius-xs);
+    background: var(--color-bg-overlay);
+    border: 1px solid var(--color-border);
     margin-bottom: 4px;
     margin-left: 4px;
+    font-family: var(--font-mono);
 }
 </style>

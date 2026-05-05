@@ -1,0 +1,61 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg2b" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#0e131e"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </radialGradient>
+    <filter id="glow2b" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg2b)"/>
+
+  <!-- D shape: thick rounded shape (vertical stem + half-circle) -->
+  <!-- Outer D outline as path -->
+  <path d="M 132 112 L 240 112 A 144 144 0 0 1 240 400 L 132 400 Z"
+        fill="none" stroke="#ffffff" stroke-width="36" stroke-linejoin="round"/>
+
+  <!-- waveform cutting horizontally across the middle of the D -->
+  <g filter="url(#glow2b)">
+    <path d="M 92 256
+             L 132 256
+             L 148 240
+             L 164 272
+             L 180 224
+             L 196 288
+             L 212 240
+             L 228 268
+             L 244 232
+             L 260 280
+             L 276 244
+             L 292 264
+             L 308 248
+             L 324 268
+             L 340 240
+             L 360 256
+             L 420 256"
+          fill="none" stroke="#00D2BF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <path d="M 92 256
+           L 132 256
+           L 148 240
+           L 164 272
+           L 180 224
+           L 196 288
+           L 212 240
+           L 228 268
+           L 244 232
+           L 260 280
+           L 276 244
+           L 292 264
+           L 308 248
+           L 324 268
+           L 340 240
+           L 360 256
+           L 420 256"
+        fill="none" stroke="#00D2BF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- bracket marks (V2 brutalist nod) -->
+  <path d="M 92 240 L 92 272" stroke="#00D2BF" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 420 240 L 420 272" stroke="#00D2BF" stroke-width="3" stroke-linecap="round"/>
+</svg>

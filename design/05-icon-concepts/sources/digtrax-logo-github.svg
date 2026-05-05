@@ -1,0 +1,104 @@
+<svg viewBox="0 0 1200 320" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgL" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#0e131e"/><stop offset="100%" stop-color="#050811"/></radialGradient>
+    <radialGradient id="cutoutGradL" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#0e131e"/>
+      <stop offset="60%" stop-color="#070a13"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </radialGradient>
+    <filter id="glowL" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="glowSmL" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="textGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+    <radialGradient id="bgPage" cx="50%" cy="50%" r="80%"><stop offset="0%" stop-color="#0e131e"/><stop offset="100%" stop-color="#050811"/></radialGradient>
+  </defs>
+
+  <!-- Page background -->
+  <rect width="1200" height="320" fill="url(#bgPage)"/>
+
+  <!-- ICON at left: scaled to 280x280 starting at (16, 20) -->
+  <g transform="translate(16 20) scale(0.547)">
+    <rect width="512" height="512" rx="120" fill="url(#bgL)"/>
+    <circle cx="256" cy="256" r="180" fill="#00D2BF" opacity="0.07" filter="url(#glowL)"/>
+    <g fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round">
+      <circle cx="256" cy="256" r="172" opacity="0.18"/>
+      <circle cx="256" cy="256" r="138" opacity="0.22"/>
+      <circle cx="256" cy="256" r="104" opacity="0.18"/>
+      <circle cx="256" cy="256" r="68"  opacity="0.22"/>
+    </g>
+    <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="6" opacity="0.55" filter="url(#glowL)"/>
+    <circle cx="256" cy="256" r="138" fill="none" stroke="#00D2BF" stroke-width="3.5"/>
+    <circle cx="256" cy="256" r="18" fill="#00D2BF" filter="url(#glowSmL)"/>
+    <circle cx="256" cy="256" r="11" fill="#ffffff"/>
+    <circle cx="256" cy="256" r="4" fill="#050811"/>
+    <g transform="translate(370 256)">
+      <path d="M -49 0 L -23 -36 Q -19 -39 -14 -39 L 63 -39 Q 68 -39 68 -34 L 68 34 Q 68 39 63 39 L -14 39 Q -19 39 -23 36 Z"
+            fill="#00D2BF" opacity="0.40" filter="url(#glowSmL)"/>
+      <path d="M -49 0 L -23 -36 Q -19 -39 -14 -39 L 63 -39 Q 68 -39 68 -34 L 68 34 Q 68 39 63 39 L -14 39 Q -19 39 -23 36 Z"
+            fill="#ffffff" stroke="rgba(0,0,0,0.30)" stroke-width="1.75" stroke-linejoin="round"/>
+      <g filter="url(#glowL)" opacity="0.42" fill="#00D2BF">
+        <rect x="-13" y="-7"  width="5" height="14" rx="1.5"/>
+        <rect x="-6"  y="-13" width="5" height="26" rx="1.5"/>
+        <rect x="1"   y="-9"  width="5" height="18" rx="1.5"/>
+        <rect x="8"   y="-21" width="5" height="42" rx="1.5"/>
+        <rect x="15"  y="-16" width="5" height="32" rx="1.5"/>
+        <rect x="22"  y="-30" width="5" height="60" rx="1.5"/>
+        <rect x="29"  y="-25" width="5" height="50" rx="1.5"/>
+        <rect x="36"  y="-19" width="5" height="38" rx="1.5"/>
+        <rect x="43"  y="-13" width="5" height="26" rx="1.5"/>
+        <rect x="50"  y="-7"  width="5" height="14" rx="1.5"/>
+        <rect x="57"  y="-4"  width="5" height="8"  rx="1.5"/>
+      </g>
+      <g fill="url(#cutoutGradL)">
+        <rect x="-13" y="-7"  width="5" height="14" rx="1.5"/>
+        <rect x="-6"  y="-13" width="5" height="26" rx="1.5"/>
+        <rect x="1"   y="-9"  width="5" height="18" rx="1.5"/>
+        <rect x="8"   y="-21" width="5" height="42" rx="1.5"/>
+        <rect x="15"  y="-16" width="5" height="32" rx="1.5"/>
+        <rect x="22"  y="-30" width="5" height="60" rx="1.5"/>
+        <rect x="29"  y="-25" width="5" height="50" rx="1.5"/>
+        <rect x="36"  y="-19" width="5" height="38" rx="1.5"/>
+        <rect x="43"  y="-13" width="5" height="26" rx="1.5"/>
+        <rect x="50"  y="-7"  width="5" height="14" rx="1.5"/>
+        <rect x="57"  y="-4"  width="5" height="8"  rx="1.5"/>
+      </g>
+      <g fill="none" stroke="rgba(0,210,191,0.55)" stroke-width="1.2" filter="url(#glowSmL)">
+        <rect x="-13" y="-7"  width="5" height="14" rx="1.5"/>
+        <rect x="-6"  y="-13" width="5" height="26" rx="1.5"/>
+        <rect x="1"   y="-9"  width="5" height="18" rx="1.5"/>
+        <rect x="8"   y="-21" width="5" height="42" rx="1.5"/>
+        <rect x="15"  y="-16" width="5" height="32" rx="1.5"/>
+        <rect x="22"  y="-30" width="5" height="60" rx="1.5"/>
+        <rect x="29"  y="-25" width="5" height="50" rx="1.5"/>
+        <rect x="36"  y="-19" width="5" height="38" rx="1.5"/>
+        <rect x="43"  y="-13" width="5" height="26" rx="1.5"/>
+        <rect x="50"  y="-7"  width="5" height="14" rx="1.5"/>
+        <rect x="57"  y="-4"  width="5" height="8"  rx="1.5"/>
+      </g>
+      <g fill="none" stroke="rgba(0,210,191,0.9)" stroke-width="0.5">
+        <rect x="-13" y="-7"  width="5" height="14" rx="1.5"/>
+        <rect x="-6"  y="-13" width="5" height="26" rx="1.5"/>
+        <rect x="1"   y="-9"  width="5" height="18" rx="1.5"/>
+        <rect x="8"   y="-21" width="5" height="42" rx="1.5"/>
+        <rect x="15"  y="-16" width="5" height="32" rx="1.5"/>
+        <rect x="22"  y="-30" width="5" height="60" rx="1.5"/>
+        <rect x="29"  y="-25" width="5" height="50" rx="1.5"/>
+        <rect x="36"  y="-19" width="5" height="38" rx="1.5"/>
+        <rect x="43"  y="-13" width="5" height="26" rx="1.5"/>
+        <rect x="50"  y="-7"  width="5" height="14" rx="1.5"/>
+        <rect x="57"  y="-4"  width="5" height="8"  rx="1.5"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- WORDMARK: DIG (white) + TRAX (cyan with glow) -->
+  <g transform="translate(340 188)" font-family="JetBrains Mono, ui-monospace, SF Mono, Menlo, monospace" font-weight="700" font-size="120" letter-spacing="6">
+    <text x="0" y="0" fill="#ffffff">DIG</text>
+    <text x="246" y="0" fill="#00D2BF" filter="url(#textGlow)" opacity="0.6">TRAX</text>
+    <text x="246" y="0" fill="#00D2BF">TRAX</text>
+  </g>
+
+  <!-- subtitle: DJ TRACK TAGGING SOFTWARE -->
+  <g transform="translate(340 240)" font-family="JetBrains Mono, ui-monospace, SF Mono, Menlo, monospace" font-weight="400" font-size="20" letter-spacing="6">
+    <text x="0" y="0" fill="#7a8090">DJ TRACK TAGGING SOFTWARE</text>
+  </g>
+</svg>

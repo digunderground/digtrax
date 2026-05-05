@@ -1,13 +1,17 @@
-$primary   : #00D2BF;
-$secondary : #106c61;
-$accent    : #181818;
+// DigTrax V4 — Quasar palette overrides
+// Quasar reads SCSS vars at compile time; runtime theming uses the CSS vars in tokens.scss.
+// Keep these aligned with the dark-theme defaults in tokens.scss.
 
-$dark      : #202020;
-$dark-page : #181818;
+$primary   : #00D2BF;   // V4 accent (kept teal)
+$secondary : #1ee5d2;   // accent hover
+$accent    : #00D2BF;   // matches primary
 
-$positive  : #21BA45;
-$negative  : #C10015;
-$info      : #31CCEC;
-$warning   : #F2C037;
+$dark      : #161c2c;   // V4 bg-overlay (Quasar uses this for elevated surfaces)
+$dark-page : #050811;   // V4 bg (page background)
 
-$tooltip-background: #080808 !default;
+$positive  : #4ADE80;
+$negative  : #F87171;
+$info      : #38BDF8;
+$warning   : #FFB627;
+
+$tooltip-background: #050811 !default;

@@ -1,0 +1,35 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg2a" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#0e131e"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </radialGradient>
+    <filter id="glow2a" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg2a)"/>
+  <!-- ambient glow behind D -->
+  <circle cx="320" cy="256" r="150" fill="#00D2BF" opacity="0.07" filter="url(#glow2a)"/>
+
+  <!-- vertical stem of the D -->
+  <rect x="128" y="120" width="42" height="272" rx="6" fill="#ffffff"/>
+
+  <!-- concentric arc grooves forming the curve of the D, opening to the left -->
+  <g transform="translate(170 256)" fill="none" stroke-linecap="round">
+    <!-- arcs from top to bottom of D, drawn as half-circles opening left -->
+    <path d="M 0 -136 A 136 136 0 0 1 0 136" stroke="#ffffff" stroke-width="14"/>
+    <path d="M 0 -116 A 116 116 0 0 1 0 116" stroke="rgba(255,255,255,0.22)" stroke-width="2"/>
+    <path d="M 0 -100 A 100 100 0 0 1 0 100" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+    <path d="M 0 -84  A 84 84   0 0 1 0 84"  stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+    <!-- highlighted cyan groove -->
+    <path d="M 0 -68 A 68 68 0 0 1 0 68" stroke="#00D2BF" stroke-width="3" opacity="0.6" filter="url(#glow2a)"/>
+    <path d="M 0 -68 A 68 68 0 0 1 0 68" stroke="#00D2BF" stroke-width="2.5"/>
+    <path d="M 0 -52 A 52 52 0 0 1 0 52" stroke="rgba(255,255,255,0.22)" stroke-width="2"/>
+    <path d="M 0 -36 A 36 36 0 0 1 0 36" stroke="rgba(255,255,255,0.30)" stroke-width="2"/>
+  </g>
+
+  <!-- spindle dot at center of D's curve -->
+  <circle cx="170" cy="256" r="8" fill="#00D2BF" filter="url(#glow2a)"/>
+  <circle cx="170" cy="256" r="5" fill="#ffffff"/>
+</svg>

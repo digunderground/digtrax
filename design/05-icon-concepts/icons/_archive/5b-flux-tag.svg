@@ -1,0 +1,66 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg5b" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#0e131e"/><stop offset="100%" stop-color="#050811"/></radialGradient>
+    <linearGradient id="wave5b" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="60%" stop-color="#00D2BF" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.3"/>
+    </linearGradient>
+    <filter id="glow5b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="glowSm5b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg5b)"/>
+
+  <!-- ambient cyan band under wave -->
+  <ellipse cx="256" cy="320" rx="190" ry="50" fill="#00D2BF" opacity="0.10" filter="url(#glow5b)"/>
+
+  <!-- baseline guide (subtle dashed) -->
+  <line x1="80" y1="320" x2="432" y2="320" stroke="rgba(255,255,255,0.10)" stroke-width="1" stroke-dasharray="2,8"/>
+
+  <!-- flowing wave: smooth bezier across the icon, asymmetric peaks -->
+  <!-- glow under the wave -->
+  <path d="M 70 320
+           C 100 320, 120 300, 140 280
+           C 160 260, 180 290, 200 320
+           C 220 350, 240 320, 256 240
+           C 272 160, 296 280, 320 340
+           C 344 400, 372 300, 400 320
+           C 420 334, 432 320, 442 320"
+        fill="none" stroke="#00D2BF" stroke-width="10" stroke-linecap="round" filter="url(#glow5b)" opacity="0.55"/>
+  <!-- main wave stroke with white→cyan gradient -->
+  <path d="M 70 320
+           C 100 320, 120 300, 140 280
+           C 160 260, 180 290, 200 320
+           C 220 350, 240 320, 256 240
+           C 272 160, 296 280, 320 340
+           C 344 400, 372 300, 400 320
+           C 420 334, 432 320, 442 320"
+        fill="none" stroke="url(#wave5b)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- TAG hanging at the dominant peak (256, 200), point DOWN touching peak -->
+  <!-- string from tag down to the peak -->
+  <line x1="256" y1="160" x2="256" y2="200" stroke="rgba(255,255,255,0.35)" stroke-width="2" stroke-dasharray="3,3"/>
+
+  <!-- glow halo behind tag -->
+  <g transform="translate(256 124)">
+    <path d="M 0 76 L -28 36 L -28 -22 Q -28 -36 -14 -36 L 14 -36 Q 28 -36 28 -22 L 28 36 Z"
+          fill="#00D2BF" opacity="0.4" filter="url(#glow5b)"/>
+  </g>
+  <!-- tag body (point DOWN) -->
+  <g transform="translate(256 124)">
+    <path d="M 0 76 L -28 36 L -28 -22 Q -28 -36 -14 -36 L 14 -36 Q 28 -36 28 -22 L 28 36 Z"
+          fill="#ffffff" stroke="rgba(0,0,0,0.25)" stroke-width="1"/>
+    <!-- string hole -->
+    <circle cx="0" cy="-20" r="5" fill="#050811"/>
+    <!-- cyan stripe across tag -->
+    <rect x="-24" y="0" width="48" height="10" fill="#00D2BF" filter="url(#glowSm5b)"/>
+    <rect x="-24" y="0" width="48" height="10" fill="#00D2BF"/>
+  </g>
+
+  <!-- bracket marks left & right (V04 motif, subtle) -->
+  <g stroke="rgba(0,210,191,0.6)" stroke-width="3" stroke-linecap="round" fill="none">
+    <path d="M 70 296 L 60 296 L 60 344 L 70 344"/>
+    <path d="M 442 296 L 452 296 L 452 344 L 442 344"/>
+  </g>
+</svg>

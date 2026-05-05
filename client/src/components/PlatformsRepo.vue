@@ -105,9 +105,9 @@
 import { useDialogPluginComponent, useQuasar } from 'quasar';
 import { RepoPlatform } from '../scripts/autotagger';
 import { PropType, computed, ref } from 'vue';
-import { get1t } from '../scripts/onetagger';
+import { get1t } from '../scripts/digtrax';
 
-const ICON_URL = 'https://raw.githubusercontent.com/Marekkon5/onetagger-platforms/master/platforms';
+const ICON_URL = 'https://raw.githubusercontent.com/digtrax/digtrax-platforms/master/platforms';
 
 const { manifest } = defineProps({
     manifest: { required: true, type: Object as PropType<RepoPlatform[]> }
