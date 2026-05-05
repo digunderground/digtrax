@@ -1,4 +1,7 @@
-<h1 align='center'>DigTrax</h1>
+<p align='center'>
+    <img src='assets/digtrax-logo-github.png' alt='DigTrax' width='560'>
+</p>
+
 <h3 align='center'>The cross-platform music tagger for DJs</h3>
 
 <p align='center'>
