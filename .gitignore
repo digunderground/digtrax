@@ -24,3 +24,6 @@ flamegraph.svg
 
 # Recall folder (per-project session recaps)
 recall/
+
+# Claude Code per-project state
+.claude/

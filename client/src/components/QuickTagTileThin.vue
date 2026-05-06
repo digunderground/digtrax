@@ -9,16 +9,11 @@
         <!-- Artist -->
         <div v-if='isVis("artist")' class='qt-cell qt-cell-artist'>{{ track.artists.join(", ") }}</div>
 
-        <!-- Mood -->
+        <!-- Mood — inline picker (replaces the deprecated bottom bar). Row
+             click handler still fires so clicking the cell first selects
+             the track; once selected, the chip becomes a dropdown. -->
         <div v-if='isVis("mood")' class='qt-cell qt-cell-mood'>
-            <q-chip
-                dense
-                v-if='getMood(track.mood)'
-                :color='getMood(track.mood)!.color'
-                :outline='getMood(track.mood)!.outline'
-                :label='getMood(track.mood)!.mood'
-                class='qt-thin-chip'
-            ></q-chip>
+            <QuickTagMoodPicker :track='track' :selected='selected' />
         </div>
 
         <!-- Energy: 5 horizontal pips (V4) -->
@@ -88,6 +83,7 @@ import { get1t } from '../scripts/digtrax';
 import { CustomTagInfo, keyColor, QTTrack } from '../scripts/quicktag';
 import { trackPaint } from '../scripts/trackColors';
 import { columns, isColumnVisible } from '../scripts/qtColumns';
+import QuickTagMoodPicker from './QuickTagMoodPicker.vue';
 
 const $1t = get1t();
 const props = defineProps({

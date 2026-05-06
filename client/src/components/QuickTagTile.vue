@@ -41,16 +41,9 @@
 
             <!-- Data row: mood, energy, genre, customs -->
             <div class='qt-card-data'>
-                <!-- Mood chip (V4 style — colored pill) -->
-                <q-chip
-                    v-if='getMood(track.mood)'
-                    dense
-                    :color='getMood(track.mood)!.color + ""'
-                    :outline='getMood(track.mood)!.outline'
-                    :label='getMood(track.mood)!.mood'
-                    class='qt-card-mood-chip cursor-pointer'
-                    @click='removeMood(track.mood)'
-                ></q-chip>
+                <!-- Mood — inline picker. When the card is selected the
+                     chip becomes a dropdown of every configured mood. -->
+                <QuickTagMoodPicker :track='track' :selected='selected' />
 
                 <!-- Energy pips (more compact than stars) -->
                 <q-rating
@@ -115,6 +108,7 @@ import { get1t } from '../scripts/digtrax.js';
 import { CAMELOT_KEYS, CustomTagInfo, KEY_COLORS, OPENKEY_KEYS, PLACEHOLDER_IMG, QTTrack } from '../scripts/quicktag.js';
 import { httpUrl } from '../scripts/utils.js';
 import { hashColor, trackPaint } from '../scripts/trackColors.js';
+import QuickTagMoodPicker from './QuickTagMoodPicker.vue';
 
 const $1t = get1t();
 const props = defineProps({

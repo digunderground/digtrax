@@ -14,7 +14,13 @@
             >
                 {{ genre.genre }}
 
-                <q-menu v-if='genre.subgenres' :model-value='mouseOver == i' class='no-shadow'>
+                <q-menu
+                    v-if='genre.subgenres'
+                    :model-value='mouseOver == i'
+                    class='no-shadow'
+                    anchor='top middle'
+                    self='bottom middle'
+                >
                     <q-list @mouseleave="mouseOver = -1" class='dt-subgenre-list'>
                         <q-item
                             v-for='(subgenre, j) in genre.subgenres'
@@ -58,21 +64,29 @@ function onMouseLeave() {
 
 <style lang="scss" scoped>
 .dt-genres {
-    height: 40px;
+    height: 48px;
     display: flex;
     align-items: center;
+    justify-content: center;
     border-top: 1px solid var(--color-border);
+    background: var(--color-bg-elevated);
 }
 
+/* Centered when content fits; scrolls horizontally when content overflows.
+   `justify-content: center` works inside an overflow:auto container so long
+   as the inner content is wider than the container — the scroll adopts a
+   left-aligned start, which is fine. When the genre list fits the viewport
+   it stays centered. */
 .dt-genres-scroll {
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    gap: 8px;
     padding: 0 16px;
     overflow-x: auto;
     overflow-y: hidden;
-    width: 100%;
     height: 100%;
+    max-width: 100%;
 }
 
 .dt-genres-scroll::-webkit-scrollbar:horizontal {
@@ -83,33 +97,39 @@ function onMouseLeave() {
     flex-shrink: 0;
 }
 
+/* Pill-styled menu items: each genre reads as its own button rather than a
+   row of plain labels. Subtle border so the bar still feels like chrome,
+   not a hero CTA. */
 .dt-genre {
-    padding: 5px 12px;
+    padding: 6px 14px;
     background: transparent;
-    border: none;
-    color: var(--color-fg-subtle);
+    border: 1px solid var(--color-border);
+    color: var(--color-fg-muted);
     font: inherit;
     font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     cursor: pointer;
-    border-radius: var(--radius-xs);
+    border-radius: var(--radius-full, 9999px);
     transition: all var(--duration-fast) var(--ease-standard);
     white-space: nowrap;
+    line-height: 1.2;
 }
 
 .dt-genre:hover,
 .dt-genre.hover {
     color: var(--color-fg);
     background: rgba(255, 255, 255, 0.04);
+    border-color: var(--color-border-strong);
 }
 
 .dt-genre.active {
     color: var(--color-accent);
     background: rgba(0, 210, 191, 0.08);
-    text-shadow: 0 0 6px var(--color-accent-glow);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 12px var(--color-accent-glow);
     font-weight: 700;
 }
 

@@ -27,7 +27,10 @@
             <!-- Footer -->
             <q-footer reveal class="bg-darker text-white" v-if="footer">
                 <div v-if='isRoute("quicktag")'>
-                    <QuickTagMoods v-if="$1t.quickTag.value.track"></QuickTagMoods>
+                    <!-- Mood bar removed — moods are now picked inline via the
+                         per-row/card chip (see QuickTagMoodPicker.vue). The
+                         legacy QuickTagMoods component is still in the tree
+                         but no longer mounted. -->
                     <QuickTagGenreBar v-if="$1t.quickTag.value.track"></QuickTagGenreBar>
                 </div>
 
@@ -90,7 +93,6 @@ import PlayerBar from './components/PlayerBar.vue';
 import FolderBrowser from './components/FolderBrowser.vue';
 import DigTraxNavRail from './components/DigTraxNavRail.vue';
 import QuickTagGenreBar from './components/QuickTagGenreBar.vue';
-import QuickTagMoods from './components/QuickTagMoods.vue';
 
 const $1t = get1t();
 const $q = useQuasar();
