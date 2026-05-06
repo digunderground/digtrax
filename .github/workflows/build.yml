@@ -1,9 +1,9 @@
 name: Build
 # Triggers:
 #   - push to any branch / PR → run all platform builds, upload artifacts
-#   - push of a v* tag (e.g. `git tag v1.7.1 && git push --tags`) → run all
-#     platform builds AND create a draft GitHub release with the artifacts
-#     attached (release job at the bottom of this file).
+#   - push of a v* tag → builds run on the tagged SHA; the release.yml
+#     workflow watches for this run to complete and creates the GitHub
+#     release using these artifacts (no rebuild).
 on:
   push:
     branches: ['**']
@@ -240,65 +240,4 @@ jobs:
       with:
         name: digtrax-mac-cli
         path: dist/DigTrax-mac-cli.zip
-
-
-  # Release job — runs ONLY on tag pushes (refs/tags/v*). Pulls every
-  # platform build's artifact and attaches them to a draft GitHub release
-  # named after the tag. Drafts so a maintainer can review + edit the
-  # release notes before publishing.
-  release:
-    name: Release
-    needs: [build-linux, build-win, build-mac]
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Download all platform artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: dist
-
-    - name: Show downloaded layout
-      run: |
-        echo "=== dist/ tree ==="
-        find dist -maxdepth 3 -type f | sort
-
-    - name: Create draft release
-      uses: softprops/action-gh-release@v2
-      with:
-        name: DigTrax ${{ github.ref_name }}
-        tag_name: ${{ github.ref_name }}
-        draft: true
-        generate_release_notes: true
-        body: |
-          ## DigTrax ${{ github.ref_name }}
-
-          Cross-platform music metadata tagger for DJs.
-
-          ### Downloads
-
-          | Platform | File |
-          | --- | --- |
-          | macOS (Universal — Intel + Apple Silicon) | `DigTrax-mac.zip` |
-          | macOS CLI | `DigTrax-mac-cli.zip` |
-          | Windows installer | `DigTrax-windows-setup.exe` |
-          | Windows portable | `DigTrax-windows.exe` |
-          | Windows CLI | `DigTrax-windows-cli.exe` |
-          | Linux | `DigTrax-linux.tar.gz` |
-          | Linux CLI | `DigTrax-linux-cli.tar.gz` |
-
-          See the auto-generated changelog below for what landed in this release.
-        files: |
-          dist/digtrax-linux/DigTrax-linux.tar.gz
-          dist/digtrax-linux-cli/DigTrax-linux-cli.tar.gz
-          dist/digtrax-mac/DigTrax-mac.zip
-          dist/digtrax-mac-cli/DigTrax-mac-cli.zip
-          dist/digtrax-win/DigTrax-windows.exe
-          dist/digtrax-win-cli/DigTrax-windows-cli.exe
-          dist/digtrax-win-setup/DigTrax-windows-setup.exe
-        fail_on_unmatched_files: false
 

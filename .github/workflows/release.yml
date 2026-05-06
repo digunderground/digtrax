@@ -1,0 +1,128 @@
+name: Release
+# Two ways to cut a release:
+#
+# 1. Tag-driven (no UI): push a `v*` tag. build.yml builds for that SHA,
+#    this workflow watches Build via `workflow_run`, and on success for
+#    a tag ref it pulls those artifacts and creates a draft release.
+#       git tag v1.7.1
+#       git push origin v1.7.1
+#
+# 2. Manual button: Actions → Release → Run workflow → enter the tag.
+#    Useful when:
+#      - the tag already exists and Build already succeeded for its SHA
+#        (skips the rebuild — just creates the release from cached artifacts)
+#      - you want to retry a failed release-only step without bouncing
+#        the whole pipeline
+#    The job finds the most recent successful Build run for the tag's
+#    SHA and uses its artifacts.
+#
+# Either way the release is created as a *draft* so you can review +
+# edit the auto-generated changelog before publishing.
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (must already exist remotely; e.g. v1.7.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write   # create releases + read tag refs
+  actions: read     # download artifacts from the source Build run
+
+jobs:
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    # Run conditions:
+    #   - Manual dispatch always runs (the user is asking)
+    #   - workflow_run only runs when Build succeeded for a v* tag ref
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        startsWith(github.event.workflow_run.head_branch, 'v')
+      )
+    steps:
+    - name: Resolve source Build run + tag
+      id: src
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          TAG="${{ inputs.tag }}"
+          # Look up the SHA the tag points at.
+          SHA=$(gh api "repos/${{ github.repository }}/git/refs/tags/$TAG" --jq '.object.sha' 2>/dev/null) || {
+            echo "::error::Tag $TAG not found on remote. Push it first: git push origin $TAG"
+            exit 1
+          }
+          # Find the most recent successful Build run for that SHA.
+          RUN_ID=$(gh run list --workflow=Build --status=success --commit "$SHA" --limit 1 \
+            --json databaseId --jq '.[0].databaseId // empty')
+          if [[ -z "$RUN_ID" ]]; then
+            echo "::error::No successful Build run found for $TAG ($SHA). Wait for Build to finish first."
+            exit 1
+          fi
+        else
+          # workflow_run: head_branch is the tag name for tag pushes.
+          TAG="${{ github.event.workflow_run.head_branch }}"
+          RUN_ID="${{ github.event.workflow_run.id }}"
+        fi
+        echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+        echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+        echo "Resolved → tag=$TAG, source Build run=$RUN_ID"
+
+    - name: Download platform artifacts from source run
+      uses: actions/download-artifact@v4
+      with:
+        path: dist
+        run-id: ${{ steps.src.outputs.run_id }}
+        github-token: ${{ github.token }}
+        merge-multiple: false
+
+    - name: Show downloaded layout
+      run: |
+        echo "=== dist/ tree ==="
+        find dist -maxdepth 3 -type f | sort
+
+    - name: Create draft release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: DigTrax ${{ steps.src.outputs.tag }}
+        tag_name: ${{ steps.src.outputs.tag }}
+        draft: true
+        generate_release_notes: true
+        body: |
+          ## DigTrax ${{ steps.src.outputs.tag }}
+
+          Cross-platform music metadata tagger for DJs.
+
+          ### Downloads
+
+          | Platform | File |
+          | --- | --- |
+          | macOS (Universal — Intel + Apple Silicon) | `DigTrax-mac.zip` |
+          | macOS CLI | `DigTrax-mac-cli.zip` |
+          | Windows installer | `DigTrax-windows-setup.exe` |
+          | Windows portable | `DigTrax-windows.exe` |
+          | Windows CLI | `DigTrax-windows-cli.exe` |
+          | Linux | `DigTrax-linux.tar.gz` |
+          | Linux CLI | `DigTrax-linux-cli.tar.gz` |
+
+          Artifacts pulled from Build run #${{ steps.src.outputs.run_id }}. See the
+          auto-generated changelog below for what landed since the previous tag.
+        files: |
+          dist/digtrax-linux/DigTrax-linux.tar.gz
+          dist/digtrax-linux-cli/DigTrax-linux-cli.tar.gz
+          dist/digtrax-mac/DigTrax-mac.zip
+          dist/digtrax-mac-cli/DigTrax-mac-cli.zip
+          dist/digtrax-win/DigTrax-windows.exe
+          dist/digtrax-win-cli/DigTrax-windows-cli.exe
+          dist/digtrax-win-setup/DigTrax-windows-setup.exe
+        fail_on_unmatched_files: false
