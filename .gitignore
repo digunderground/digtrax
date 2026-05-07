@@ -27,3 +27,6 @@ recall/
 
 # Claude Code per-project state
 .claude/
+
+# Vendored upstream sources for reference (not shipped)
+research/
