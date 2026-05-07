@@ -44,6 +44,7 @@ mod filter;
 mod master;
 mod qmdsp;
 mod sync;
+mod timestretch;
 
 pub use beats::{analyze, BeatAnalysis};
 pub use decode::{decode_file, DecodedAudio};

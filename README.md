@@ -18,8 +18,9 @@ Click the **DJ MODE** pill at the top-right of the player bar to flip the footer
 
 - Drag tracks from Quick Tag onto either deck — the first deck loaded auto-becomes MASTER, the second auto-engages SYNC.
 - Beat detection uses the same algorithms that ship in [Mixxx](https://github.com/mixxxdj/mixxx) — the [QM-DSP](https://github.com/c4dm/qm-dsp) library is vendored under `crates/digtrax-deck/vendor/qm-dsp/`. See [`CREDITS.md`](CREDITS.md) for full attribution.
-- Per-deck rotary knobs for GAIN / HI / MID / LO and a vertical channel fader; per-deck tempo slider (±8%, vinyl-style); equal-power crossfader; ±1/4 beat jump.
-- Closed-loop sync engine runs in the cpal audio callback (PI controller on beat-distance, gain 0.7, ±2% rate cap — Mixxx's `bpmcontrol.cpp::calcSyncedRate` exactly).
+- Per-deck rotary knobs for GAIN / HI / MID / LO and a vertical channel fader; per-deck tempo slider (±8%); equal-power crossfader; ±1/4 beat jump.
+- Per-deck **KEY LOCK** (on by default) — tempo changes preserve pitch via [Rubber Band](https://breakfastquay.com/rubberband/) (R2 "Faster" engine, the same one Mixxx defaults to). Toggle the **KEY** pill off for vinyl-style coupled pitch.
+- Closed-loop sync engine runs in the cpal audio callback (PI controller on beat-distance, gain 0.7, ±5% rate cap, deadband + delta-cap — Mixxx's `bpmcontrol.cpp::calcSyncAdjustment` exactly).
 
 ## Installing
 

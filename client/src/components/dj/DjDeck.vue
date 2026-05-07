@@ -64,6 +64,16 @@
                 @click='toggleMaster'
                 :title='masterTitle'
             >MASTER</button>
+            <!-- KEY LOCK toggle (Mixxx-equivalent). Default ON: tempo
+                 changes preserve pitch via RubberBand. OFF: tempo and
+                 pitch couple (vinyl-style). Always usable — doesn't
+                 depend on beat analysis. -->
+            <button
+                class='dj-deck-pill dj-deck-pill--key'
+                :class='{ "dj-deck-pill--on": state.keyLock }'
+                @click='toggleKeyLock'
+                :title='keyLockTitle'
+            >KEY</button>
             <div class='dj-deck-jump' :class='{ "dj-deck-jump--disabled": !state.beats.length }'>
                 <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(-4)' title='-4 beats'>⟪4</button>
                 <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(-1)' title='-1 beat'>⟨1</button>
@@ -136,7 +146,7 @@ import DjWaveform from './DjWaveform.vue';
 import {
     DeckId, djState,
     loadDeck, playDeck, pauseDeck, stopDeck,
-    setLeader, setSync, beatJump, setDeckRate, translateBeats,
+    setLeader, setSync, setKeyLock, beatJump, setDeckRate, translateBeats,
 } from '../../scripts/dj';
 import { PLACEHOLDER_IMG } from '../../scripts/quicktag';
 import { httpUrl } from '../../scripts/utils';
@@ -208,6 +218,10 @@ function toggleMaster() {
     if (state.value.isLeader) setLeader(null);
     else setLeader(props.id);
 }
+function toggleKeyLock() { setKeyLock(props.id, !state.value.keyLock); }
+const keyLockTitle = computed(() => state.value.keyLock
+    ? 'KEY LOCK on — tempo changes preserve pitch (RubberBand)'
+    : 'KEY LOCK off — pitch follows tempo (vinyl-style)');
 
 /// Tempo slider input handler. Disabled on followers (the sync engine
 /// owns their rate atomic), but otherwise sends djRate. Double-click
@@ -421,6 +435,14 @@ function formatTime(ms: number): string {
     background: #ff8c2e !important;
     border-color: #ff8c2e !important;
     color: #1a0e00 !important;
+}
+/* KEY LOCK pill: same shape, distinct sky-blue when on so users
+   can distinguish it from SYNC's mint and MASTER's orange at a
+   glance. Default state is ON; we render that as the active fill. */
+.dj-deck-pill--key.dj-deck-pill--on {
+    background: var(--t-sky, #38BDF8) !important;
+    border-color: var(--t-sky, #38BDF8) !important;
+    color: #002030 !important;
 }
 
 .dj-deck-jump {

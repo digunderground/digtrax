@@ -30,6 +30,7 @@ use crossbeam_channel::{Receiver, Sender, TrySendError};
 use crate::decode::DecodedAudio;
 use crate::eq::EqChain;
 use crate::filter::FilterChain;
+use crate::timestretch::TimeStretcher;
 
 /// Snapshot of a deck's user-visible state — what we push back to the
 /// frontend over WS.
@@ -49,6 +50,10 @@ pub struct DeckSnapshot {
     pub rate: f32,
     /// True if a track is loaded.
     pub loaded: bool,
+    /// Per-deck key lock — when true, tempo changes preserve pitch
+    /// (RubberBand R2 in the audio path). When false, tempo and pitch
+    /// couple (linear-interp resample, vinyl-style). Default: true.
+    pub key_lock: bool,
 }
 
 /// 3-band EQ band selector for `DeckHandle::set_eq`.
@@ -108,6 +113,24 @@ pub(crate) struct DeckEngine {
     eq: EqChain,
     /// DJ filter chain (single-knob LPF↔bypass↔HPF sweep).
     filter: FilterChain,
+    /// Pitch-preserving time-stretcher for the per-deck KEY LOCK
+    /// feature. Always allocated (so the audio callback never
+    /// allocates); only fed when key_lock is ON and the rate is
+    /// outside the safe-pass range.
+    stretcher: TimeStretcher,
+    /// Largest chunk we'll ever push into the stretcher in a single
+    /// `process()` call. Must equal the value passed to
+    /// `TimeStretcher::new` so the inner scratch buffers are big
+    /// enough.
+    stretch_max_chunk: usize,
+    /// Edge-detection state for the key-lock atomic. When the toggle
+    /// transitions OFF→ON we reset the stretcher (it has no useful
+    /// internal state from the bypass period).
+    last_key_lock_active: bool,
+    /// Last `time_ratio` written to the stretcher. We only call
+    /// `set_time_ratio` when this changes, so steady-state buffers
+    /// don't pay the cost of an FFI call every callback.
+    last_stretch_ratio: f64,
     /// Read-side handle — atomics this engine writes for outside readers.
     handle: DeckHandle,
 }
@@ -142,6 +165,10 @@ pub struct DeckHandle {
     /// DJ-style filter knob, f32 bits, range [-1.0, 1.0].
     /// 0 = bypass, negative = LPF sweep, positive = HPF sweep.
     filter_knob: Arc<AtomicU32>,
+    /// Per-deck key lock toggle. `true` = pitch-preserving time-stretch
+    /// (RubberBand). `false` = pitch-coupled resample (linear interp).
+    /// Default: `true`. WS sets this via `set_key_lock`.
+    key_lock: Arc<AtomicBool>,
 }
 
 impl DeckHandle {
@@ -228,6 +255,20 @@ impl DeckHandle {
         self.filter_knob.store(v.to_bits(), Ordering::Release);
     }
 
+    /// Toggle per-deck key lock. When `on`, tempo changes preserve pitch
+    /// (RubberBand). When `off`, tempo and pitch couple (vinyl-style).
+    /// Mixxx-equivalent: `keylock` per-deck control. Default state on
+    /// every deck is `true`.
+    pub fn set_key_lock(&self, on: bool) {
+        self.key_lock.store(on, Ordering::Release);
+    }
+
+    /// Read current key-lock state. Pushed to frontend so reconnects
+    /// sync the toggle UI without an extra round-trip.
+    pub fn key_lock(&self) -> bool {
+        self.key_lock.load(Ordering::Acquire)
+    }
+
     /// Jump `n` beats from the current bracket beat. Negative = back.
     /// No-op if beats haven't been analyzed yet.
     pub fn beat_jump(&self, n: i32) {
@@ -272,6 +313,7 @@ impl DeckHandle {
             volume: f32::from_bits(self.volume.load(Ordering::Acquire)),
             rate: f32::from_bits(self.rate.load(Ordering::Acquire)),
             loaded: dur_frames > 0,
+            key_lock: self.key_lock.load(Ordering::Acquire),
         }
     }
 }
@@ -294,6 +336,8 @@ impl DeckEngine {
         let eq_mid = Arc::new(AtomicU32::new(1.0_f32.to_bits()));
         let eq_high = Arc::new(AtomicU32::new(1.0_f32.to_bits()));
         let filter_knob = Arc::new(AtomicU32::new(0.0_f32.to_bits()));
+        // Key lock defaults to ON (Mixxx-default-ish, also user spec).
+        let key_lock = Arc::new(AtomicBool::new(true));
         let handle = DeckHandle {
             cmd_tx,
             volume,
@@ -306,7 +350,13 @@ impl DeckEngine {
             eq_mid,
             eq_high,
             filter_knob,
+            key_lock,
         };
+        // Pre-allocate the stretcher's scratch buffers for the largest
+        // chunk we'll plausibly feed in one call. cpal callbacks at
+        // 44.1/48 kHz are typically 256–1024 frames; we size for 4096
+        // to leave headroom on systems with bigger callbacks.
+        let stretch_max_chunk = 4096usize;
         let engine = DeckEngine {
             audio: None,
             position_frames: 0.0,
@@ -317,6 +367,10 @@ impl DeckEngine {
             file_bpm: 0.0,
             eq: EqChain::new(output_rate),
             filter: FilterChain::new(output_rate),
+            stretcher: TimeStretcher::new(output_rate, stretch_max_chunk),
+            stretch_max_chunk,
+            last_key_lock_active: false,
+            last_stretch_ratio: 1.0,
             handle: handle.clone(),
         };
         (engine, handle)
@@ -417,6 +471,11 @@ impl DeckEngine {
                     self.handle.position_frames.store(0, Ordering::Release);
                     self.handle.playing.store(false, Ordering::Release);
                     self.audio = Some(audio);
+                    // Drop any audio still buffered inside the stretcher
+                    // from a prior track — it'd play back at the wrong
+                    // pitch otherwise.
+                    self.stretcher.reset();
+                    self.last_key_lock_active = false;
                 }
                 DeckCommand::Unload => {
                     self.audio = None;
@@ -425,6 +484,8 @@ impl DeckEngine {
                     self.handle.source_rate.store(0, Ordering::Release);
                     self.handle.position_frames.store(0, Ordering::Release);
                     self.handle.playing.store(false, Ordering::Release);
+                    self.stretcher.reset();
+                    self.last_key_lock_active = false;
                 }
                 DeckCommand::Play => {
                     if self.audio.is_some() {
@@ -439,6 +500,10 @@ impl DeckEngine {
                         let f = frame.min(a.frames.saturating_sub(1));
                         self.position_frames = f as f64;
                         self.handle.position_frames.store(f, Ordering::Release);
+                        // Stretcher's internal buffers refer to the old
+                        // position; reset so we don't bleed into the new
+                        // location.
+                        self.stretcher.reset();
                     }
                 }
                 DeckCommand::SetBeats { beats_frames, bpm } => {
@@ -478,6 +543,8 @@ impl DeckEngine {
                         let f = target_frame.min(a.frames.saturating_sub(1));
                         self.position_frames = f as f64;
                         self.handle.position_frames.store(f, Ordering::Release);
+                        // Same as Seek — old buffered audio is now stale.
+                        self.stretcher.reset();
                     }
                 }
             }
@@ -500,11 +567,11 @@ impl DeckEngine {
         for s in out.iter_mut() {
             *s = 0.0;
         }
-        // Note: tick() must be called by the caller before process().
-        // We don't drain here so the sync engine can see post-tick state.
 
-        let audio = match &self.audio {
-            Some(a) => a,
+        // Lift everything we need out of `audio` so we don't keep an
+        // immutable borrow of `self` while we mutate fields below.
+        let (source_rate, total_frames_u64) = match &self.audio {
+            Some(a) => (a.sample_rate, a.frames),
             None => return,
         };
         if !self.handle.playing.load(Ordering::Acquire) {
@@ -516,51 +583,145 @@ impl DeckEngine {
         let eq_mid = f32::from_bits(self.handle.eq_mid.load(Ordering::Acquire));
         let eq_high = f32::from_bits(self.handle.eq_high.load(Ordering::Acquire));
         let filter_knob = f32::from_bits(self.handle.filter_knob.load(Ordering::Acquire));
-        // Phase 2: linear-interpolated SRC × user-rate multiplier.
-        // `audio.sample_rate / output_rate` handles 44.1 → 48 kHz format
-        // conversion; multiplying by `user_rate` (1.0 = native) speeds up
-        // or slows down playback. Pitch couples to speed (vinyl-style) —
-        // Phase 2c may swap in a phase vocoder if pitch preservation is
-        // needed.
-        let rate_ratio = (audio.sample_rate as f64 / self.output_rate as f64) * user_rate;
-        let total_frames = audio.frames as f64;
+        let key_lock_on = self.handle.key_lock.load(Ordering::Acquire);
         let n_chan = self.output_channels as usize;
         let n_out_frames = out.len() / n_chan;
+        if n_out_frames == 0 { return; }
 
-        let samples = audio.samples.as_ref();
-        for i in 0..n_out_frames {
-            if self.position_frames >= total_frames - 1.0 {
-                // Ran off the end — auto-pause and emit silence.
-                self.handle.playing.store(false, Ordering::Release);
-                break;
+        // Mixxx-style guard: at extreme rates RubberBand R2 sounds
+        // bad enough that Mixxx force-disables keylock. We follow the
+        // same thresholds (`enginebuffer.cpp:951–966`). At rate=1.0
+        // the stretcher would just be added latency for no benefit.
+        let stretch_active = key_lock_on
+            && user_rate > 0.10
+            && user_rate < 1.90
+            && (user_rate - 1.0).abs() > 1e-4;
+
+        // Detect OFF→ON edge (or rate-jump out of the bypass window
+        // back into stretch range). In either case we reset the
+        // stretcher so it starts cleanly rather than emitting whatever
+        // was buffered when we last bypassed it.
+        if stretch_active && !self.last_key_lock_active {
+            self.stretcher.reset();
+            self.last_stretch_ratio = -1.0;
+        }
+        self.last_key_lock_active = stretch_active;
+
+        let total_frames = total_frames_u64 as f64;
+
+        if stretch_active {
+            // Tempo-only stretch: time_ratio = 1/user_rate. Pitch stays 1.0.
+            let target_ratio = 1.0 / user_rate;
+            if (target_ratio - self.last_stretch_ratio).abs() > 1e-9 {
+                self.stretcher.set_time_ratio(target_ratio);
+                self.last_stretch_ratio = target_ratio;
             }
-            let idx = self.position_frames as usize;
-            let frac = (self.position_frames - idx as f64) as f32;
-            // Linear interpolate between this stereo frame and the next.
-            // samples is interleaved L,R,L,R,... so frame `idx` lives at
-            // `samples[2*idx]` (L) and `samples[2*idx + 1]` (R).
-            let i0 = idx * 2;
-            let l = samples[i0] * (1.0 - frac) + samples[i0 + 2] * frac;
-            let r = samples[i0 + 1] * (1.0 - frac) + samples[i0 + 3] * frac;
-            // DSP chain: SRC → EQ → filter → volume → output.
-            let (l_eq, r_eq) = self.eq.process_frame(l, r, eq_low, eq_mid, eq_high);
-            let (l_dsp, r_dsp) = self.filter.process_frame(l_eq, r_eq, filter_knob);
-            // Write to all output channels — channel 0 = L, 1 = R, 2+ = silence.
-            let base = i * n_chan;
-            if n_chan == 1 {
-                // Mono device: sum L+R at -3 dB.
-                out[base] = (l_dsp + r_dsp) * 0.5 * volume;
-            } else {
-                out[base] = l_dsp * volume;
-                out[base + 1] = r_dsp * volume;
-                // any extra channels stay zero (already cleared above)
+            // Source-to-output sample-rate ratio applied per pushed frame.
+            let src_step = source_rate as f64 / self.output_rate as f64;
+            let mut written = 0usize;
+            // Hard cap defends against pathological feed loops; in
+            // steady state this exits in 2–4 iterations.
+            for _safety in 0..32 {
+                if written >= n_out_frames { break; }
+
+                let avail = self.stretcher.available();
+                if avail < 0 { break; }   // End-of-stream.
+                if avail > 0 {
+                    let want = (n_out_frames - written)
+                        .min(avail as usize)
+                        .min(self.stretch_max_chunk);
+                    let got = self.stretcher.pull(want);
+                    if got > 0 {
+                        // Copy out of stretcher scratch first, drop the
+                        // borrow, then run DSP. (Borrow checker won't
+                        // let us call `self.eq.process_frame` while
+                        // `self.stretcher` is borrowed.)
+                        for j in 0..got {
+                            let (sl, sr) = self.stretcher.scratch_out();
+                            let l = sl[j];
+                            let r = sr[j];
+                            let (l_eq, r_eq) =
+                                self.eq.process_frame(l, r, eq_low, eq_mid, eq_high);
+                            let (l_dsp, r_dsp) =
+                                self.filter.process_frame(l_eq, r_eq, filter_knob);
+                            let out_base = (written + j) * n_chan;
+                            if n_chan == 1 {
+                                out[out_base] = (l_dsp + r_dsp) * 0.5 * volume;
+                            } else {
+                                out[out_base] = l_dsp * volume;
+                                out[out_base + 1] = r_dsp * volume;
+                            }
+                        }
+                        written += got;
+                        continue;
+                    }
+                }
+
+                // Need more input — feed RB at output rate from the source.
+                let req = self.stretcher.samples_required();
+                let push_n = req.max(64).min(self.stretch_max_chunk);
+                let mut hit_end = false;
+                // Build planar input — borrow scope for the scratch slices.
+                {
+                    let mut pos = self.position_frames;
+                    let (in_l, in_r) = self.stretcher.scratch_in();
+                    for j in 0..push_n {
+                        if pos >= total_frames - 1.0 {
+                            for k in j..push_n {
+                                in_l[k] = 0.0;
+                                in_r[k] = 0.0;
+                            }
+                            hit_end = true;
+                            break;
+                        }
+                        let idx = pos as usize;
+                        let frac = (pos - idx as f64) as f32;
+                        let i0 = idx * 2;
+                        // Read source samples directly.
+                        let samples = self.audio.as_ref().unwrap().samples.as_ref();
+                        in_l[j] = samples[i0] * (1.0 - frac) + samples[i0 + 2] * frac;
+                        in_r[j] = samples[i0 + 1] * (1.0 - frac) + samples[i0 + 3] * frac;
+                        pos += src_step;
+                    }
+                    self.position_frames = pos;
+                }
+                self.stretcher.push(push_n, hit_end);
+                if hit_end {
+                    self.handle.playing.store(false, Ordering::Release);
+                }
             }
-            self.position_frames += rate_ratio;
+        } else {
+            // Linear-interp path: vinyl-style pitch+tempo couple, or
+            // keylock fallback at rate=1.0 / extreme rates.
+            let rate_ratio =
+                (source_rate as f64 / self.output_rate as f64) * user_rate;
+            let samples = self.audio.as_ref().unwrap().samples.as_ref();
+            for i in 0..n_out_frames {
+                if self.position_frames >= total_frames - 1.0 {
+                    self.handle.playing.store(false, Ordering::Release);
+                    break;
+                }
+                let idx = self.position_frames as usize;
+                let frac = (self.position_frames - idx as f64) as f32;
+                let i0 = idx * 2;
+                let l = samples[i0] * (1.0 - frac) + samples[i0 + 2] * frac;
+                let r = samples[i0 + 1] * (1.0 - frac) + samples[i0 + 3] * frac;
+                let (l_eq, r_eq) = self.eq.process_frame(l, r, eq_low, eq_mid, eq_high);
+                let (l_dsp, r_dsp) = self.filter.process_frame(l_eq, r_eq, filter_knob);
+                let out_base = i * n_chan;
+                if n_chan == 1 {
+                    out[out_base] = (l_dsp + r_dsp) * 0.5 * volume;
+                } else {
+                    out[out_base] = l_dsp * volume;
+                    out[out_base + 1] = r_dsp * volume;
+                }
+                self.position_frames += rate_ratio;
+            }
         }
 
         let pos_int = self.position_frames as u64;
         self.handle
             .position_frames
-            .store(pos_int.min(audio.frames), Ordering::Release);
+            .store(pos_int.min(total_frames_u64), Ordering::Release);
     }
 }

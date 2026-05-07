@@ -65,6 +65,10 @@ export interface DeckState {
     /// True if SYNC is engaged on this deck. Means: "if a different
     /// deck is the leader and this deck has analyzed beats, follow it."
     syncOn: boolean;
+    /// Per-deck KEY LOCK. True (default) = tempo changes preserve pitch
+    /// (RubberBand R2 in the audio path). False = tempo and pitch
+    /// couple (vinyl-style resample). Mixxx-equivalent.
+    keyLock: boolean;
     /// 3-band EQ. Each ∈ [0, 2], 1 = unity, 0 = kill, 2 = +6 dB.
     eqLow: number;
     eqMid: number;
@@ -101,6 +105,7 @@ function emptyDeck(id: DeckId): DeckState {
         beats: [],
         isLeader: false,
         syncOn: false,
+        keyLock: true,
         eqLow: 1.0,
         eqMid: 1.0,
         eqHigh: 1.0,
@@ -240,6 +245,15 @@ export function setLeader(deck: DeckId | null) {
 export function setSync(deck: DeckId, on: boolean) {
     refOf(deck).syncOn = on;
     get1t().send('djSync', { deck, on });
+}
+
+/// Toggle per-deck KEY LOCK. When on (default), tempo changes preserve
+/// pitch — the deck's audio runs through RubberBand. When off, pitch
+/// couples to tempo (vinyl-style). Mixxx-equivalent. Optimistic local
+/// update; backend confirms via `djPosition.keyLock`.
+export function setKeyLock(deck: DeckId, on: boolean) {
+    refOf(deck).keyLock = on;
+    get1t().send('djKeyLock', { deck, on });
 }
 
 export type EqBand = 'low' | 'mid' | 'high';
@@ -386,6 +400,7 @@ export function onDjEvent(json: any) {
             if (Number.isFinite(rate) && rate > 0) slot.rate = rate;
             if (typeof json.isLeader === 'boolean') slot.isLeader = json.isLeader;
             if (typeof json.syncOn === 'boolean') slot.syncOn = json.syncOn;
+            if (typeof json.keyLock === 'boolean') slot.keyLock = json.keyLock;
             return;
         }
     }

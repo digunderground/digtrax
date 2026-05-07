@@ -85,6 +85,57 @@ Bundled with QM-DSP under `vendor/qm-dsp/ext/kissfft/`. Copyright ©
 
 ---
 
+## Rubber Band Library — pitch-preserving time-stretch (KEY LOCK)
+
+The per-deck KEY LOCK feature in DJ Mode (introduced in v1.8.0-beta.5)
+uses the [Rubber Band Library](https://breakfastquay.com/rubberband/)
+by Particular Programs Ltd / Chris Cannam — the same library Mixxx
+uses for its keylock engine (`KeylockEngine::RubberBandFaster`).
+
+The R2 ("Faster") engine is what's active in DigTrax's audio callback;
+R3 ("Finer") is also compiled because Rubber Band's facade references
+it unconditionally, but is not selected at runtime in v1.
+
+### Files vendored
+
+The relevant Rubber Band sources are vendored verbatim under
+[`crates/digtrax-deck/vendor/rubberband/`](crates/digtrax-deck/vendor/rubberband/).
+File scope mirrors Meson's library target with all plugin / CLI / JNI
+options disabled:
+
+- `src/common/` — shared utilities (allocators, FFT facade,
+  resampler, vector ops, threading, profiler)
+- `src/faster/` — R2 stretcher and audio-curve detectors
+- `src/finer/` — R3 stretcher (compiled but not selected)
+- `src/RubberBandStretcher.cpp`, `src/rubberband-c.cpp` — top-level
+  facade + C API
+- `rubberband/*.h` — public headers
+
+DigTrax's `build.rs` defines `USE_BUILTIN_FFT` and `USE_BQRESAMPLER`
+so no external FFT (FFTW / kissfft / vDSP) or resampler dependency
+is required — the build is self-contained.
+
+A single-line patch is applied to `src/common/VectorOpsComplex.cpp`
+(an upstream typo points `#include "system/sysutils.h"` at a path
+that doesn't exist in the source tree); the comment in that file
+documents the change.
+
+### Copyright
+
+> Copyright © 2007-2024 Particular Programs Ltd.
+
+### License
+
+Rubber Band is licensed under the **GNU General Public License
+version 2 or (at your option) any later version**. The full text is
+at [`crates/digtrax-deck/vendor/rubberband/COPYING`](crates/digtrax-deck/vendor/rubberband/COPYING).
+
+A commercial licence is available from breakfastquay.com for
+proprietary applications; DigTrax does not require it because we
+are GPL-3 ourselves and license-compatible.
+
+---
+
 ## Other dependencies
 
 The full transitive Rust crate graph and its licenses can be inspected
@@ -99,7 +150,7 @@ Notable deps and their licenses:
 | Crate | Use | License |
 |-------|-----|---------|
 | `cpal` | Cross-platform audio I/O | MIT OR Apache-2.0 |
-| `rubato` | Sample-rate conversion (placeholder for v2 time-stretch) | MIT |
+| `rubato` | Sample-rate conversion (declared dep; superseded by Rubber Band for keylock) | MIT |
 | `realfft` | Used in places we haven't yet ported to QM-DSP | MIT/Apache-2.0 |
 | `symphonia` | Audio file decoding | MPL-2.0 |
 | `crossbeam-channel` | Lock-free SPSC for non-RT control commands | MIT/Apache-2.0 |

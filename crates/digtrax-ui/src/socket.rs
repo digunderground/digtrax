@@ -115,6 +115,10 @@ enum Action {
     /// `beats_translate_later` user-driven controls.
     #[serde(rename_all = "camelCase")]
     DjBeatsTranslate { deck: WireDeckId, offset_ms: i64 },
+    /// Per-deck KEY LOCK toggle. When `on`, tempo changes preserve
+    /// pitch (RubberBand R2 in the audio path). When `off`, tempo and
+    /// pitch couple (vinyl-style). Default for every deck is `on`.
+    DjKeyLock { deck: WireDeckId, on: bool },
 
     QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool>, separators: TagSeparators, limit: Option<bool> },
     QuickTagSave { path: PathBuf, changes: TagChanges },
@@ -355,6 +359,7 @@ pub(crate) async fn handle_ws_connection(mut websocket: WebSocket, context: Star
                             "rate": snap.rate,
                             "isLeader": is_leader,
                             "syncOn": sync_on,
+                            "keyLock": snap.key_lock,
                         })).await;
                     }
                 }
@@ -725,6 +730,9 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         },
         Action::DjBeatsTranslate { deck, offset_ms } => {
             context.mixer()?.handle().deck(deck.into()).translate_beats_ms(offset_ms);
+        },
+        Action::DjKeyLock { deck, on } => {
+            context.mixer()?.handle().deck(deck.into()).set_key_lock(on);
         },
 
         // Load quicktag files or playlist
