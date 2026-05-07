@@ -19,6 +19,12 @@ fn main() {
         .flag_if_supported("-Wno-unused-parameter")
         .flag_if_supported("-Wno-unused-variable")
         .flag_if_supported("-Wno-sign-compare")
+        // MSVC's <cmath> doesn't define M_PI by default — only when
+        // _USE_MATH_DEFINES is set before <math.h> is included.
+        // QM-DSP uses M_PI throughout; without this the Windows build
+        // fails with "undeclared identifier 'M_PI'". POSIX toolchains
+        // ignore this define so it's safe to set unconditionally.
+        .define("_USE_MATH_DEFINES", None)
         // Force kissfft to use double precision so it matches QM-DSP's
         // double-precision pipeline. Default is float; QM-DSP wants double.
         .define("kiss_fft_scalar", "double")
@@ -39,6 +45,8 @@ fn main() {
         .flag_if_supported("-Wno-deprecated")
         .flag_if_supported("-Wno-unused-parameter")
         .flag_if_supported("-Wno-unused-variable")
+        // Same MSVC M_PI fix as the C++ build above.
+        .define("_USE_MATH_DEFINES", None)
         .define("kiss_fft_scalar", "double")
         .file(format!("{}/ext/kissfft/kiss_fft.c", qm_root))
         .file(format!("{}/ext/kissfft/tools/kiss_fftr.c", qm_root))
