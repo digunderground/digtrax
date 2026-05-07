@@ -89,6 +89,16 @@ fn build_rubberband() {
         .define("_USE_MATH_DEFINES", None)
         .define("USE_BUILTIN_FFT", None)
         .define("USE_BQRESAMPLER", None)
+        // Windows-only hygiene. NOMINMAX prevents <windows.h> from
+        // declaring `min`/`max` as preprocessor macros — otherwise
+        // every `std::max(...)` in RubberBand becomes a syntax error
+        // ("illegal token on right side of '::'", which is what we
+        // saw when v1.8.0-beta.7's CI build first got past the
+        // include-path problem). WIN32_LEAN_AND_MEAN trims the
+        // <windows.h> blast radius (Thread.cpp pulls it in for the
+        // Win32 thread API). Both are no-ops on POSIX builds.
+        .define("NOMINMAX", None)
+        .define("WIN32_LEAN_AND_MEAN", None)
         .flag_if_supported("-Wno-deprecated")
         .flag_if_supported("-Wno-deprecated-declarations")
         .flag_if_supported("-Wno-unused-parameter")
