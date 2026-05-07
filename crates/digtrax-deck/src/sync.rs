@@ -12,15 +12,25 @@
 //!   follower's playhead to the nearest beat that aligns with the
 //!   leader's current phase. Without this, the PI controller can take
 //!   seconds to drag the follower across half a beat at the rate cap.
-//! - Constants:
-//!   - gain 0.7 (Mixxx default)
-//!   - rate cap **±5%** (Mixxx uses 2%; we widen because our BPM
-//!     detection is only ±0.5 BPM where Mixxx's is ±0.05). At 124 BPM
-//!     a 1 BPM detection error is 0.8% — Mixxx's 2% cap leaves only
-//!     1.2% headroom for phase corrections, which can saturate. 5%
-//!     gives us 4.2% headroom even at the edge of detection error.
-//!   - train-wreck threshold 25% of a beat (we snap-seek instead of
-//!     trying to PI-correct).
+//! - Constants (all Mixxx-exact, see `bpmcontrol.cpp::calcSyncAdjustment`):
+//!   - error deadband 0.01 — below 1% phase error, NO adjustment
+//!     (prevents jitter / oscillation when essentially in sync).
+//!   - PI gain 0.7
+//!   - absolute rate cap ±5%
+//!   - per-buffer rate-of-change cap ±2% (delta from last adjustment;
+//!     prevents lurching when error spikes).
+//!   - train-wreck threshold 0.2: when this fires, we apply a steady
+//!     +5% rate boost so the follower catches up over a few seconds.
+//!     We do NOT teleport the follower — that was the source of the
+//!     "skip forward erratically during breakdowns" bug, where every
+//!     train-wreck snap left the follower at a slightly different
+//!     wrong position (because beat-period × phase has rounding error
+//!     when QM-DSP-derived periods are uneven).
+//!   - `last_sync_adjustment` is persistent across buffers and used
+//!     to clamp the per-buffer delta. Reset to 1.0 on sync-engage.
+//! - Snap-on-engage IS still done (one shot, when sync flips off→on)
+//!   to land the follower close to phase before the PI loop takes
+//!   over. After that one snap, position is never written again.
 //! - Runs in the cpal callback ([`SyncEngine::process`]), so the loop
 //!   closes against **real audio position** — no frontend / WS round-
 //!   trip in the hot path.
@@ -38,14 +48,22 @@ use std::sync::Arc;
 use crate::engine::DeckEngine;
 use crate::DeckId;
 
-/// PI gain — Mixxx's exact `bpmcontrol.cpp::calcSyncedRate` value.
+/// Phase-error deadband. Below this, no rate adjustment at all
+/// (Mixxx's `kErrorThreshold`). Prevents jitter when in sync.
+const ERROR_THRESHOLD: f64 = 0.01;
+/// PI gain (Mixxx's `kSyncAdjustmentProportional`).
 const PI_GAIN: f64 = 0.7;
-/// Rate-correction cap — Mixxx's exact value, restored. Now valid
-/// because we run QM-DSP for beat detection (sub-frame BPM precision)
-/// and snap-seek on engage so the PI controller only handles steady-
-/// state corrections within ±2%.
-const PI_CAP: f64 = 0.02;
-/// Beyond this absolute phase error, snap-seek instead of PI-correcting.
+/// Absolute rate cap (Mixxx's `kSyncAdjustmentCap`). Adjustment
+/// stays within `[1.0 - 0.05, 1.0 + 0.05]`.
+const PI_ABS_CAP: f64 = 0.05;
+/// Per-buffer rate-of-change cap (Mixxx's `kSyncDeltaCap`).
+/// Limits how far one buffer's adjustment can move from the
+/// previous buffer's, preventing lurches.
+const PI_DELTA_CAP: f64 = 0.02;
+/// Phase error above which we apply the catch-up boost. Mixxx's
+/// `kTrainWreckThreshold` — we use the same value but, like Mixxx,
+/// do NOT snap-seek; we just nudge the rate by the absolute cap so
+/// the follower converges over a few seconds.
 const TRAIN_WRECK: f64 = 0.2;
 
 /// Audio-thread side. Owned by the cpal callback closure alongside
@@ -58,6 +76,12 @@ pub(crate) struct SyncEngine {
     /// Audio-thread-only, doesn't need to be atomic.
     last_sync_a: bool,
     last_sync_b: bool,
+    /// Persistent last-applied adjustment (Mixxx's
+    /// `m_dLastSyncAdjustment`). Used to clamp the per-buffer delta.
+    /// Stored in "adjustment" form: 1.0 means no rate change.
+    /// Per-deck because either deck can be the follower.
+    last_adj_a: f64,
+    last_adj_b: f64,
 }
 
 /// `Send + Clone` controller. The WS layer holds one and updates
@@ -80,6 +104,8 @@ impl SyncEngine {
             sync_b: sync_b.clone(),
             last_sync_a: false,
             last_sync_b: false,
+            last_adj_a: 1.0,
+            last_adj_b: 1.0,
         };
         let handle = SyncHandle { leader, sync_a, sync_b };
         (engine, handle)
@@ -106,21 +132,25 @@ impl SyncEngine {
         self.last_sync_a = sync_a_now;
         self.last_sync_b = sync_b_now;
 
+        // Reset persistent adjustment state on engage so the new
+        // sync session starts from a clean 1.0 baseline (Mixxx's
+        // `m_resetSyncAdjustment` flag).
+        if sync_a_engaged { self.last_adj_a = 1.0; }
+        if sync_b_engaged { self.last_adj_b = 1.0; }
+
         // Pick leader / follower references. We have to do this with
         // some careful borrow-splitting since both come from `&mut`s.
+        let follower_id;
         let (leader_eng, follower_eng, follower_sync, follower_engaged) = match leader_code {
-            1 => (&*deck_a, deck_b, sync_b_now, sync_b_engaged),
-            2 => (&*deck_b, deck_a, sync_a_now, sync_a_engaged),
+            1 => { follower_id = DeckId::B; (&*deck_a, deck_b, sync_b_now, sync_b_engaged) }
+            2 => { follower_id = DeckId::A; (&*deck_b, deck_a, sync_a_now, sync_a_engaged) }
             _ => return,
         };
         if !follower_sync { return; }
 
         // Only run sync corrections when BOTH decks are actively
         // producing audio. If either is paused, the PI loop can yank
-        // the follower's playhead around (each buffer the follower
-        // drifts further from a frozen leader, eventually crossing
-        // the train-wreck threshold and snap-seeking — which makes
-        // the visible waveform jump erratically).
+        // the follower's rate around against a frozen leader phase.
         if !leader_eng.is_playing() || !follower_eng.is_playing() { return; }
 
         let (Some(leader_phase), Some(follower_phase)) =
@@ -139,22 +169,59 @@ impl SyncEngine {
         // ahead of follower → follower must speed up.
         let err = ((leader_phase - follower_phase + 1.5) % 1.0) - 0.5;
 
-        // Snap conditions: (a) sync just engaged, OR (b) we're more
-        // than 25% of a beat off and the PI cap can't realistically
-        // catch up in reasonable time. In both cases write the
-        // follower's playhead directly to the nearest aligned beat.
-        if follower_engaged || err.abs() > TRAIN_WRECK {
+        // Snap-seek ONLY on engage to land near phase. NEVER on
+        // train-wreck — see file-level comment for why.
+        if follower_engaged {
             snap_follower(follower_eng, leader_phase);
+            // After snap, write the base rate immediately; the next
+            // buffer's err will be ~0 and the deadband holds it there.
+            let base_rate = (leader_bpm * leader_user_rate) / follower_bpm;
+            follower_eng.write_rate(base_rate as f32);
+            // Also zero our persistent state — we're now aligned.
+            match follower_id {
+                DeckId::A => self.last_adj_a = 1.0,
+                DeckId::B => self.last_adj_b = 1.0,
+            }
+            return;
         }
 
-        // Steady-state PI correction.
-        let correction = (PI_GAIN * err).clamp(-PI_CAP, PI_CAP);
+        // Mixxx-exact `calcSyncAdjustment`. Read previous adjustment.
+        let last_adj = match follower_id {
+            DeckId::A => self.last_adj_a,
+            DeckId::B => self.last_adj_b,
+        };
+
+        let adjustment = if err.abs() > TRAIN_WRECK {
+            // Way off — apply the absolute cap as a steady boost
+            // toward the leader. NEVER snap. The follower converges
+            // smoothly over a few seconds at 5% rate excess.
+            // Sign: err > 0 means follower is BEHIND, so speed up.
+            if err > 0.0 { 1.0 + PI_ABS_CAP } else { 1.0 - PI_ABS_CAP }
+        } else if err.abs() > ERROR_THRESHOLD {
+            // PI control with rate-of-change clamp. err > 0 → follower
+            // behind → speed up, so adjust > 1.
+            let target = 1.0 + (err * PI_GAIN);
+            let delta = (target - last_adj).clamp(-PI_DELTA_CAP, PI_DELTA_CAP);
+            // Final adjustment = last + delta, clamped to absolute cap.
+            // Phrased as Mixxx phrases it: 1.0 + clamp((last - 1.0) + delta, ±cap).
+            1.0 + ((last_adj - 1.0) + delta).clamp(-PI_ABS_CAP, PI_ABS_CAP)
+        } else {
+            // Deadband — already in sync, leave the rate alone.
+            1.0
+        };
+
+        // Persist for next buffer.
+        match follower_id {
+            DeckId::A => self.last_adj_a = adjustment,
+            DeckId::B => self.last_adj_b = adjustment,
+        }
+
         // base_rate = effective leader BPM (file BPM × leader's user
         // rate) / follower file BPM. Bakes in the leader's tempo
         // slider so the follower tracks user pitch shifts on the
-        // leader without saturating the PI cap.
+        // leader without saturating the cap.
         let base_rate = (leader_bpm * leader_user_rate) / follower_bpm;
-        let new_rate = base_rate * (1.0 + correction);
+        let new_rate = base_rate * adjustment;
         follower_eng.write_rate(new_rate as f32);
     }
 }
