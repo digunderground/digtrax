@@ -115,6 +115,14 @@ impl SyncEngine {
         };
         if !follower_sync { return; }
 
+        // Only run sync corrections when BOTH decks are actively
+        // producing audio. If either is paused, the PI loop can yank
+        // the follower's playhead around (each buffer the follower
+        // drifts further from a frozen leader, eventually crossing
+        // the train-wreck threshold and snap-seeking — which makes
+        // the visible waveform jump erratically).
+        if !leader_eng.is_playing() || !follower_eng.is_playing() { return; }
+
         let (Some(leader_phase), Some(follower_phase)) =
             (leader_eng.beat_distance(), follower_eng.beat_distance())
         else { return; };

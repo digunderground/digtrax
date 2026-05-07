@@ -16,6 +16,18 @@
             />
             <span class='dj-mixer-master-label'>MAIN</span>
         </div>
+        <!-- Shared zoom for both deck waveforms. Both decks render at
+             the same zoom so kicks line up visually when DJing. Wheel
+             over either waveform also adjusts. -->
+        <div class='dj-mixer-zoom'>
+            <button class='dj-mixer-zoom-btn' @click='onZoomOut' title='Zoom out (more time visible)'>
+                <q-icon name='mdi-magnify-minus-outline' size='14px' />
+            </button>
+            <span class='dj-mixer-zoom-label'>{{ djState.zoomSeconds }}s</span>
+            <button class='dj-mixer-zoom-btn' @click='onZoomIn' title='Zoom in (more detail)'>
+                <q-icon name='mdi-magnify-plus-outline' size='14px' />
+            </button>
+        </div>
         <Crossfader
             :model-value='djState.crossfader'
             @update:model-value='setCrossfader'
@@ -28,11 +40,13 @@
 <script lang='ts' setup>
 import DjDeck from './DjDeck.vue';
 import Crossfader from './Crossfader.vue';
-import { djState, setCrossfader, setMasterGain } from '../../scripts/dj';
+import { djState, setCrossfader, setMasterGain, zoomIn, zoomOut } from '../../scripts/dj';
 
 function onMaster(v: number | null) {
     if (typeof v === 'number') setMasterGain(v);
 }
+function onZoomIn() { zoomIn(); }
+function onZoomOut() { zoomOut(); }
 </script>
 
 <style lang='scss' scoped>
@@ -70,5 +84,37 @@ function onMaster(v: number | null) {
     font-weight: 700;
     letter-spacing: 0.08em;
     color: var(--color-fg-subtle);
+}
+
+.dj-mixer-zoom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+.dj-mixer-zoom-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 22px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xs, 4px);
+    background: transparent;
+    color: var(--color-fg-muted);
+    cursor: pointer;
+    transition: all var(--duration-fast, 120ms) ease;
+}
+.dj-mixer-zoom-btn:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+.dj-mixer-zoom-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--color-fg-muted);
+    min-width: 30px;
+    text-align: center;
 }
 </style>

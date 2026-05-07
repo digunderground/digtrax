@@ -18,6 +18,7 @@
         @mousemove='onMainMove'
         @mouseleave='hover = false'
         @click='onMainClick'
+        @wheel.prevent='onWheel'
     />
     <canvas
         ref='miniCanvas'
@@ -30,7 +31,7 @@
 
 <script lang='ts' setup>
 import { computed, onMounted, onUnmounted, PropType, ref, watch, nextTick } from 'vue';
-import { djState, DeckId, seekDeck, type DeckState } from '../../scripts/dj';
+import { djState, DeckId, seekDeck, zoomIn, zoomOut, type DeckState } from '../../scripts/dj';
 
 const props = defineProps({
     id: { required: true, type: String as PropType<DeckId> },
@@ -44,11 +45,17 @@ const miniCanvas = ref<HTMLCanvasElement | null>(null);
 const hover = ref(false);
 const hoverPos = ref(0);
 
-/// Visible window of the main canvas, in seconds.
-const ZOOM_SECONDS = 30;
 /// Where the playhead sits horizontally within the main canvas (0..1).
-/// 1/3 = 10s past + 20s ahead — Mixxx's default.
+/// 1/3 = past on left + ahead on right — Mixxx's default.
 const PLAYHEAD_RATIO = 1 / 3;
+
+/// Wheel handler: scroll up = zoom IN (less time visible / more detail),
+/// scroll down = zoom OUT. Ignores horizontal scroll. Both decks share
+/// the same zoom value so the user can compare at the same scale.
+function onWheel(e: WheelEvent) {
+    if (Math.abs(e.deltaY) < 1) return;
+    if (e.deltaY < 0) zoomIn(); else zoomOut();
+}
 
 const BAND_PLAYED = [
     'rgba(255, 90, 75, 1.0)',    // low — red/orange (kicks)
@@ -112,7 +119,7 @@ function drawMain() {
     if (!bars.length || !state.value.duration) return;
 
     const bps = state.value.spectrumBarsPerSec || 10;
-    const windowDurationMs = ZOOM_SECONDS * 1000;
+    const windowDurationMs = djState.zoomSeconds * 1000;
     const windowStartMs = state.value.position - PLAYHEAD_RATIO * windowDurationMs;
     const windowEndMs = windowStartMs + windowDurationMs;
     const pxPerMs = w / windowDurationMs;
@@ -225,7 +232,7 @@ function drawMini() {
     }
 
     // Visible-window overlay.
-    const windowDurationMs = ZOOM_SECONDS * 1000;
+    const windowDurationMs = djState.zoomSeconds * 1000;
     const windowStartMs = state.value.position - PLAYHEAD_RATIO * windowDurationMs;
     const winX = (windowStartMs / state.value.duration) * w;
     const winW = (windowDurationMs / state.value.duration) * w;
@@ -248,7 +255,7 @@ function onMainClick(e: MouseEvent) {
     if (!c || !state.value.duration) return;
     const rect = c.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const windowDurationMs = ZOOM_SECONDS * 1000;
+    const windowDurationMs = djState.zoomSeconds * 1000;
     const windowStartMs = state.value.position - PLAYHEAD_RATIO * windowDurationMs;
     const target = windowStartMs + ratio * windowDurationMs;
     const clamped = Math.max(0, Math.min(state.value.duration, target));
@@ -296,6 +303,7 @@ watch(() => state.value.spectrum, () => redraw(), { flush: 'post', deep: false }
 watch(() => state.value.position, () => redraw(), { flush: 'post' });
 watch(() => state.value.duration, () => redraw(), { flush: 'post' });
 watch(() => state.value.beats, () => redraw(), { flush: 'post', deep: false });
+watch(() => djState.zoomSeconds, () => redraw(), { flush: 'post' });
 
 let ro: ResizeObserver | null = null;
 onMounted(() => {

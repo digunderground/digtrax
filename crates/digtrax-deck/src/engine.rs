@@ -310,6 +310,15 @@ impl DeckEngine {
     /// follower.bpm`. 0 = analysis not done.
     pub(crate) fn file_bpm(&self) -> f32 { self.file_bpm }
 
+    /// Audio-thread side: whether playback is engaged (last value
+    /// stored to `handle.playing`). Used by the sync engine to skip
+    /// corrections when either deck is paused — otherwise the PI loop
+    /// can snap-seek the follower against a frozen leader phase, which
+    /// makes the visible waveform jump on every audio buffer.
+    pub(crate) fn is_playing(&self) -> bool {
+        self.handle.playing.load(Ordering::Acquire)
+    }
+
     /// Current playhead in source frames (audio-thread side, before
     /// the per-buffer atomic store).
     pub(crate) fn position_frames(&self) -> f64 { self.position_frames }

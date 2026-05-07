@@ -108,7 +108,33 @@ export const djState = reactive({
     crossfader: 0,
     /// Master output gain in [0, 2]. 1.0 = unity.
     masterGain: 1.0,
+    /// Shared zoom for the main scrolling waveform. Visible window
+    /// duration in seconds — both decks render at the same zoom so
+    /// the user can compare them at the same scale (Mixxx convention).
+    /// Mouse-wheel on the waveform changes this; default 30s = ~64
+    /// beats visible at 128 BPM (a clean phrase).
+    zoomSeconds: 30,
 });
+
+/// Zoom levels that match Mixxx's main-waveform stops. Each step
+/// roughly halves the visible window. The user wheels through these
+/// rather than getting arbitrary float values.
+const ZOOM_STOPS = [60, 45, 30, 20, 12, 8, 5, 3];
+
+/// Zoom in (smaller window = more detail). Step through ZOOM_STOPS
+/// toward the smaller end.
+export function zoomIn() {
+    const i = ZOOM_STOPS.indexOf(djState.zoomSeconds);
+    const next = i >= 0 ? ZOOM_STOPS[Math.min(i + 1, ZOOM_STOPS.length - 1)] : 30;
+    djState.zoomSeconds = next;
+}
+
+/// Zoom out (larger window = less detail).
+export function zoomOut() {
+    const i = ZOOM_STOPS.indexOf(djState.zoomSeconds);
+    const next = i > 0 ? ZOOM_STOPS[i - 1] : ZOOM_STOPS[0];
+    djState.zoomSeconds = next;
+}
 
 function refOf(id: DeckId): DeckState {
     return id === 'a' ? djState.deckA : djState.deckB;
