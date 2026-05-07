@@ -28,6 +28,29 @@ Download the latest binaries for your platform from the [Releases](../../release
 - **Windows**: `DigTrax-windows-setup.exe` — installer
 - **Linux**: `DigTrax-linux.tar.gz` — extracted binary
 
+> ### ⚠ Why your OS warns on first launch
+>
+> DigTrax is **not yet code-signed or notarized**. We're a small project and haven't paid for an Apple Developer account ($99/yr) or a Windows code-signing certificate (~$120/yr) yet — see [`plan/03-code-signing.md`](plan/03-code-signing.md) for our roadmap. The app is safe; macOS and Windows just don't have a way to verify that without a paid certificate, so they show a generic warning. Here's how to allow it the first time:
+>
+> **macOS** — *"DigTrax can't be opened because Apple cannot check it for malicious software"* or *"DigTrax is damaged and can't be opened"*:
+>
+> 1. Move `DigTrax.app` to `/Applications` after unzipping.
+> 2. Open **System Settings → Privacy & Security**, scroll to the bottom — you'll see *"'DigTrax' was blocked to protect your Mac"* with an **Open Anyway** button. Click it. (On macOS 12 and earlier the same option appears under *Security & Privacy → General → Open Anyway*.)
+> 3. If step 2 doesn't show the prompt, the file may have a stale quarantine attribute. Open Terminal and run:
+>    ```sh
+>    xattr -cr /Applications/DigTrax.app
+>    ```
+>    Then double-click again.
+> 4. You only need to do this **once per install** — subsequent launches open normally.
+>
+> **Windows** — *"Windows protected your PC"* SmartScreen prompt:
+>
+> 1. Click **More info**, then **Run anyway**.
+> 2. The installer continues normally.
+> 3. Same one-time-per-install: SmartScreen remembers your decision for that file.
+>
+> **Linux** — no warnings; just `tar xzf DigTrax-linux.tar.gz && ./digtrax`.
+
 ## Compiling
 
 ### Linux & macOS
