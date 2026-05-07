@@ -217,12 +217,14 @@ function formatTime(ms: number): string {
 .dj-deck {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 8px 12px;
+    gap: 4px;
+    padding: 6px 10px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm, 6px);
     background: rgba(255, 255, 255, 0.02);
-    min-height: 220px;
+    /* Just enough vertical space for the header + sync row + waveform
+       (96px main + 22px mini) + transport row, no slack. */
+    min-height: 210px;
 }
 .dj-deck--drag {
     border-color: var(--color-accent);
@@ -254,14 +256,14 @@ function formatTime(ms: number): string {
 /* Header — artwork / meta / times / BPM / deck letter */
 .dj-deck-header {
     display: grid;
-    grid-template-columns: 56px 1fr auto auto auto;
+    grid-template-columns: 44px 1fr auto auto auto;
     grid-template-rows: auto;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
 }
 .dj-deck-art {
-    width: 56px;
-    height: 56px;
+    width: 44px;
+    height: 44px;
     border-radius: var(--radius-xs, 4px);
     flex-shrink: 0;
     border: 1px solid var(--color-border);

@@ -66,12 +66,11 @@ function onZoomOut() { zoomOut(); }
 .dj-mixer-panel {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    gap: 8px;
+    gap: 6px;
     align-items: stretch;
-    padding: 8px 12px;
+    padding: 6px 8px;
     background: var(--color-bg-elevated);
     border-top: 1px solid var(--color-border);
-    min-height: 280px;
     box-sizing: border-box;
 }
 .dj-mixer-deck { min-width: 0; }
@@ -79,10 +78,12 @@ function onZoomOut() { zoomOut(); }
 .dj-mixer-center {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    width: 200px;
+    gap: 6px;
+    /* 2 channel strips × ~104px each + small gap = ~220px. Strips
+       are 80px knob columns + 24px fader. */
+    width: 220px;
     flex-shrink: 0;
-    padding: 4px 6px;
+    padding: 2px;
 }
 
 .dj-mixer-zoom {
