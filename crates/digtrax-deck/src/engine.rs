@@ -131,6 +131,15 @@ pub(crate) struct DeckEngine {
     /// `set_time_ratio` when this changes, so steady-state buffers
     /// don't pay the cost of an FFI call every callback.
     last_stretch_ratio: f64,
+    /// Source-frame read head used by the keylock branch. Distinct
+    /// from `position_frames` because the stretcher buffers ~50ms of
+    /// input internally — we push ahead of the audible position. The
+    /// public `position_frames` (read by the sync engine and by the
+    /// frontend) tracks the AUDIBLE position, so both decks compare
+    /// like-for-like regardless of whether they're in keylock or
+    /// bypass. Kept in sync with `position_frames` outside the
+    /// keylock branch and on every Seek / Load / BeatJump.
+    read_head_frames: f64,
     /// Read-side handle — atomics this engine writes for outside readers.
     handle: DeckHandle,
 }
@@ -371,6 +380,7 @@ impl DeckEngine {
             stretch_max_chunk,
             last_key_lock_active: false,
             last_stretch_ratio: 1.0,
+            read_head_frames: 0.0,
             handle: handle.clone(),
         };
         (engine, handle)
@@ -419,6 +429,11 @@ impl DeckEngine {
             0.0
         };
         self.position_frames = clamped;
+        // Keep the keylock read head in sync — sync engine snap-seeks
+        // jump the audible position; we restart the stretcher so the
+        // next push reads from the new location.
+        self.read_head_frames = clamped;
+        self.stretcher.reset();
         self.handle.position_frames.store(clamped as u64, std::sync::atomic::Ordering::Release);
     }
 
@@ -468,6 +483,7 @@ impl DeckEngine {
                     self.handle.duration_frames.store(audio.frames, Ordering::Release);
                     self.handle.source_rate.store(audio.sample_rate, Ordering::Release);
                     self.position_frames = 0.0;
+                    self.read_head_frames = 0.0;
                     self.handle.position_frames.store(0, Ordering::Release);
                     self.handle.playing.store(false, Ordering::Release);
                     self.audio = Some(audio);
@@ -480,6 +496,7 @@ impl DeckEngine {
                 DeckCommand::Unload => {
                     self.audio = None;
                     self.position_frames = 0.0;
+                    self.read_head_frames = 0.0;
                     self.handle.duration_frames.store(0, Ordering::Release);
                     self.handle.source_rate.store(0, Ordering::Release);
                     self.handle.position_frames.store(0, Ordering::Release);
@@ -499,6 +516,7 @@ impl DeckEngine {
                     if let Some(a) = &self.audio {
                         let f = frame.min(a.frames.saturating_sub(1));
                         self.position_frames = f as f64;
+                        self.read_head_frames = f as f64;
                         self.handle.position_frames.store(f, Ordering::Release);
                         // Stretcher's internal buffers refer to the old
                         // position; reset so we don't bleed into the new
@@ -542,6 +560,7 @@ impl DeckEngine {
                     if let Some(a) = &self.audio {
                         let f = target_frame.min(a.frames.saturating_sub(1));
                         self.position_frames = f as f64;
+                        self.read_head_frames = f as f64;
                         self.handle.position_frames.store(f, Ordering::Release);
                         // Same as Seek — old buffered audio is now stale.
                         self.stretcher.reset();
@@ -599,15 +618,19 @@ impl DeckEngine {
 
         // Detect OFF→ON edge (or rate-jump out of the bypass window
         // back into stretch range). In either case we reset the
-        // stretcher so it starts cleanly rather than emitting whatever
-        // was buffered when we last bypassed it.
+        // stretcher and re-anchor the keylock read head to the
+        // current audible position so the first push reads the right
+        // source frames.
         if stretch_active && !self.last_key_lock_active {
             self.stretcher.reset();
             self.last_stretch_ratio = -1.0;
+            self.read_head_frames = self.position_frames;
         }
         self.last_key_lock_active = stretch_active;
 
         let total_frames = total_frames_u64 as f64;
+        // Source-to-output sample-rate ratio. Same in both branches.
+        let src_step = source_rate as f64 / self.output_rate as f64;
 
         if stretch_active {
             // Tempo-only stretch: time_ratio = 1/user_rate. Pitch stays 1.0.
@@ -616,11 +639,13 @@ impl DeckEngine {
                 self.stretcher.set_time_ratio(target_ratio);
                 self.last_stretch_ratio = target_ratio;
             }
-            // Source-to-output sample-rate ratio applied per pushed frame.
-            let src_step = source_rate as f64 / self.output_rate as f64;
+            // Audible position advance per output frame: each output
+            // sample represents one frame at the device rate; in source-
+            // frame terms, that's `user_rate * src_step` (so playback
+            // slowed to 0.95× advances ~5% fewer source frames per output
+            // frame, exactly mirroring the linear-interp branch).
+            let audible_step = user_rate * src_step;
             let mut written = 0usize;
-            // Hard cap defends against pathological feed loops; in
-            // steady state this exits in 2–4 iterations.
             for _safety in 0..32 {
                 if written >= n_out_frames { break; }
 
@@ -632,10 +657,6 @@ impl DeckEngine {
                         .min(self.stretch_max_chunk);
                     let got = self.stretcher.pull(want);
                     if got > 0 {
-                        // Copy out of stretcher scratch first, drop the
-                        // borrow, then run DSP. (Borrow checker won't
-                        // let us call `self.eq.process_frame` while
-                        // `self.stretcher` is borrowed.)
                         for j in 0..got {
                             let (sl, sr) = self.stretcher.scratch_out();
                             let l = sl[j];
@@ -652,21 +673,30 @@ impl DeckEngine {
                                 out[out_base + 1] = r_dsp * volume;
                             }
                         }
+                        // Advance AUDIBLE position per pulled output frame
+                        // — this is what the sync engine reads. It must
+                        // NOT include the stretcher's internal latency,
+                        // otherwise a key-locked follower's beat_distance
+                        // appears ~50ms ahead of where the audio actually
+                        // is, and sync looks aligned while the kicks are
+                        // visibly off.
+                        self.position_frames += got as f64 * audible_step;
                         written += got;
                         continue;
                     }
                 }
 
-                // Need more input — feed RB at output rate from the source.
+                // Need more input. Read from `read_head_frames` (which
+                // runs ahead of `position_frames` by RB's internal
+                // latency), then advance the read head only.
                 let req = self.stretcher.samples_required();
                 let push_n = req.max(64).min(self.stretch_max_chunk);
                 let mut hit_end = false;
-                // Build planar input — borrow scope for the scratch slices.
                 {
-                    let mut pos = self.position_frames;
+                    let mut head = self.read_head_frames;
                     let (in_l, in_r) = self.stretcher.scratch_in();
                     for j in 0..push_n {
-                        if pos >= total_frames - 1.0 {
+                        if head >= total_frames - 1.0 {
                             for k in j..push_n {
                                 in_l[k] = 0.0;
                                 in_r[k] = 0.0;
@@ -674,19 +704,20 @@ impl DeckEngine {
                             hit_end = true;
                             break;
                         }
-                        let idx = pos as usize;
-                        let frac = (pos - idx as f64) as f32;
+                        let idx = head as usize;
+                        let frac = (head - idx as f64) as f32;
                         let i0 = idx * 2;
-                        // Read source samples directly.
                         let samples = self.audio.as_ref().unwrap().samples.as_ref();
                         in_l[j] = samples[i0] * (1.0 - frac) + samples[i0 + 2] * frac;
                         in_r[j] = samples[i0 + 1] * (1.0 - frac) + samples[i0 + 3] * frac;
-                        pos += src_step;
+                        head += src_step;
                     }
-                    self.position_frames = pos;
+                    self.read_head_frames = head;
                 }
                 self.stretcher.push(push_n, hit_end);
                 if hit_end {
+                    // Mark end-of-stream so we don't keep feeding zeros.
+                    // Actual playback stops once the stretcher drains.
                     self.handle.playing.store(false, Ordering::Release);
                 }
             }

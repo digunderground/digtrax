@@ -1141,7 +1141,7 @@ dependencies = [
 
 [[package]]
 name = "digtrax"
-version = "1.8.0-beta.5"
+version = "1.8.0-beta.6"
 dependencies = [
  "anyhow",
  "clap",
@@ -1195,7 +1195,7 @@ dependencies = [
 
 [[package]]
 name = "digtrax-cli"
-version = "1.8.0-beta.5"
+version = "1.8.0-beta.6"
 dependencies = [
  "anyhow",
  "clap",
@@ -1292,7 +1292,7 @@ dependencies = [
 
 [[package]]
 name = "digtrax-shared"
-version = "1.8.0-beta.5"
+version = "1.8.0-beta.6"
 dependencies = [
  "anyhow",
  "backtrace",
