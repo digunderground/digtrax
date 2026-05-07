@@ -40,11 +40,13 @@ mod beats;
 mod decode;
 mod engine;
 mod master;
+mod sync;
 
 pub use beats::{analyze, BeatAnalysis};
 pub use decode::{decode_file, DecodedAudio};
 pub use engine::{DeckHandle, DeckSnapshot};
 pub use master::{MasterMixer, MixerHandle};
+pub use sync::SyncHandle;
 
 /// Which deck a [`MixerHandle`] method targets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

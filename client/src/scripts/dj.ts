@@ -58,6 +58,13 @@ export interface DeckState {
     /// Every detected beat in ms (file-time). Length ≈ duration*bpm/60.
     /// Drives the yellow beat-grid markers on the deck waveform.
     beats: number[];
+    /// True if this deck is currently the sync LEADER. The follower's
+    /// rate is corrected to match this deck's beat phase. Backend
+    /// confirms via 33 Hz `djPosition.isLeader`.
+    isLeader: boolean;
+    /// True if SYNC is engaged on this deck. Means: "if a different
+    /// deck is the leader and this deck has analyzed beats, follow it."
+    syncOn: boolean;
 }
 
 function emptyDeck(id: DeckId): DeckState {
@@ -79,6 +86,8 @@ function emptyDeck(id: DeckId): DeckState {
         spectrum: [],
         spectrumBarsPerSec: 10,
         beats: [],
+        isLeader: false,
+        syncOn: false,
     };
 }
 
@@ -170,6 +179,19 @@ export function setMasterGain(value: number) {
     get1t().send('djMasterGain', { value: v });
 }
 
+/// Pick the sync leader. `null` clears (no leader). The follower
+/// deck(s) need `setSync(id, true)` separately.
+export function setLeader(deck: DeckId | null) {
+    get1t().send('djSetLeader', { deck });
+}
+
+/// Toggle sync on a deck. Backend will only correct rate when (a) sync
+/// is on, AND (b) some OTHER deck is the leader, AND (c) both have
+/// analyzed beats. The 33Hz djPosition push reports the actual state.
+export function setSync(deck: DeckId, on: boolean) {
+    get1t().send('djSync', { deck, on });
+}
+
 // ─── Inbound (backend → frontend) ─────────────────────────────────────
 
 /**
@@ -226,6 +248,8 @@ export function onDjEvent(json: any) {
             if (typeof json.playing === 'boolean') slot.playing = json.playing;
             const rate = Number(json.rate);
             if (Number.isFinite(rate) && rate > 0) slot.rate = rate;
+            if (typeof json.isLeader === 'boolean') slot.isLeader = json.isLeader;
+            if (typeof json.syncOn === 'boolean') slot.syncOn = json.syncOn;
             return;
         }
     }

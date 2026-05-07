@@ -57,6 +57,10 @@ pub(crate) enum DeckCommand {
     Pause,
     /// Seek to the given source-frame index.
     Seek(u64),
+    /// Replace the beat sequence (in source frames) and BPM. Sent after
+    /// the analyzer finishes so the audio thread has the data it needs
+    /// for sync-engine beat-distance math.
+    SetBeats { beats_frames: Vec<u64>, bpm: f32 },
 }
 
 /// Audio-thread state for one deck. Owned by the cpal callback closure.
@@ -74,6 +78,13 @@ pub(crate) struct DeckEngine {
     /// Inbound command queue. The audio thread drains this on every
     /// buffer with `try_recv()`.
     cmd_rx: Receiver<DeckCommand>,
+    /// Detected beat positions in **source frames**, monotonically
+    /// increasing. Used by `beat_distance()` for the sync engine.
+    /// Empty until the analyzer finishes (~2-3s after Load).
+    beats_frames: Vec<u64>,
+    /// File-native BPM from the analyzer. 0 = analysis not done.
+    /// Used by the sync engine to compute the base rate ratio.
+    file_bpm: f32,
     /// Read-side handle — atomics this engine writes for outside readers.
     handle: DeckHandle,
 }
@@ -167,6 +178,19 @@ impl DeckHandle {
         let _ = self.cmd_tx.try_send(DeckCommand::Unload);
     }
 
+    /// Provide the audio thread with the analyzer's beat sequence.
+    /// `beats_ms` are in milliseconds (file-time); we convert to source
+    /// frames before sending so the audio thread can binary-search
+    /// against `position_frames` directly.
+    pub fn set_beats(&self, beats_ms: &[u64], bpm: f32) {
+        let sr = self.source_rate.load(std::sync::atomic::Ordering::Acquire);
+        if sr == 0 { return; }
+        let beats_frames: Vec<u64> = beats_ms.iter()
+            .map(|&ms| (ms as f64 * sr as f64 / 1000.0).round() as u64)
+            .collect();
+        let _ = self.cmd_tx.try_send(DeckCommand::SetBeats { beats_frames, bpm });
+    }
+
     /// Snapshot the deck's current state for the WS push layer.
     pub fn snapshot(&self) -> DeckSnapshot {
         let sr = self.source_rate.load(Ordering::Acquire);
@@ -215,9 +239,57 @@ impl DeckEngine {
             output_rate,
             output_channels,
             cmd_rx,
+            beats_frames: Vec::new(),
+            file_bpm: 0.0,
             handle: handle.clone(),
         };
         (engine, handle)
+    }
+
+    /// File-native BPM from the analyzer. The sync engine reads this
+    /// during the audio callback to compute `base_rate = leader.bpm /
+    /// follower.bpm`. 0 = analysis not done.
+    pub(crate) fn file_bpm(&self) -> f32 { self.file_bpm }
+
+    /// Current playhead in source frames (audio-thread side, before
+    /// the per-buffer atomic store).
+    pub(crate) fn position_frames(&self) -> f64 { self.position_frames }
+
+    /// Beat distance: phase fraction in `[0.0, 1.0)` between the
+    /// previous beat and the next beat. Returns `None` if the deck
+    /// has no beats yet (analysis pending), no track loaded, or the
+    /// playhead sits before beat 0 / past the last beat.
+    ///
+    /// Used by the sync engine to compute the phase error between
+    /// leader and follower in the audio callback. Sample-accurate
+    /// because both values come from the same callback iteration.
+    pub(crate) fn beat_distance(&self) -> Option<f64> {
+        if self.beats_frames.len() < 2 { return None; }
+        let pos = self.position_frames;
+        let beats = &self.beats_frames;
+        // Binary-search the first beat strictly greater than `pos`.
+        // i.e. the upper bracket. The lower bracket is one before it.
+        let mut lo = 0usize;
+        let mut hi = beats.len();
+        while lo < hi {
+            let mid = (lo + hi) / 2;
+            if (beats[mid] as f64) <= pos { lo = mid + 1; } else { hi = mid; }
+        }
+        // lo is the index of the first beat > pos. We need a bracket
+        // with one beat behind and one ahead.
+        if lo == 0 || lo >= beats.len() { return None; }
+        let prev = beats[lo - 1] as f64;
+        let next = beats[lo] as f64;
+        if next <= prev { return None; }
+        Some(((pos - prev) / (next - prev)).clamp(0.0, 1.0 - f64::EPSILON))
+    }
+
+    /// Direct rate write — used by `SyncEngine` running in the audio
+    /// callback. Bypasses the public `DeckHandle::set_rate` clamp
+    /// because sync corrections should already be within ±2% of the
+    /// base rate (well inside [0.5, 2.0]).
+    pub(crate) fn write_rate(&self, rate: f32) {
+        self.handle.rate.store(rate.to_bits(), std::sync::atomic::Ordering::Release);
     }
 
     /// Drain pending commands from the WS layer. Called once per audio
@@ -256,8 +328,21 @@ impl DeckEngine {
                         self.handle.position_frames.store(f, Ordering::Release);
                     }
                 }
+                DeckCommand::SetBeats { beats_frames, bpm } => {
+                    self.beats_frames = beats_frames;
+                    self.file_bpm = bpm;
+                }
             }
         }
+    }
+
+    /// Drain pending control commands without producing any audio.
+    /// Called by the cpal master callback BEFORE `SyncEngine::process`
+    /// so the sync engine sees the latest beats / play state when it
+    /// computes phase error, then BEFORE `process()` so audio renders
+    /// with the rate the sync engine just wrote.
+    pub(crate) fn tick(&mut self) {
+        self.drain_commands();
     }
 
     /// Render `out_frames` of stereo audio into `out` (length =
@@ -267,7 +352,8 @@ impl DeckEngine {
         for s in out.iter_mut() {
             *s = 0.0;
         }
-        self.drain_commands();
+        // Note: tick() must be called by the caller before process().
+        // We don't drain here so the sync engine can see post-tick state.
 
         let audio = match &self.audio {
             Some(a) => a,

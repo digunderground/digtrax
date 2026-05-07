@@ -93,6 +93,14 @@ enum Action {
     DjCrossfader { value: f32 },
     DjMasterGain { value: f32 },
 
+    /// Pick the sync leader. `None` clears it. The follower decks need
+    /// `DjSync` enabled to actually follow.
+    DjSetLeader { deck: Option<WireDeckId> },
+    /// Toggle sync on a deck. When on AND a different deck is the
+    /// leader, the audio thread's PI controller corrects this deck's
+    /// rate every buffer to lock to the leader's beat phase.
+    DjSync { deck: WireDeckId, on: bool },
+
     QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool>, separators: TagSeparators, limit: Option<bool> },
     QuickTagSave { path: PathBuf, changes: TagChanges },
     QuickTagFolder { path: Option<String>, subdir: Option<String> },
@@ -302,9 +310,12 @@ pub(crate) async fn handle_ws_connection(mut websocket: WebSocket, context: Star
                 // (lazy-init only happens on first DjLoad). No-op for
                 // users who never enter DJ Mode.
                 if let Some(mixer) = &context.mixer {
+                    let leader = mixer.handle().sync().leader();
                     for id in DeckId::ALL {
                         let snap = mixer.handle().deck(id).snapshot();
                         if !snap.loaded { continue; }
+                        let is_leader = leader == Some(id);
+                        let sync_on = mixer.handle().sync().sync(id);
                         let _ = send_socket(&mut websocket, json!({
                             "action": "djPosition",
                             "deck": id.as_str(),
@@ -312,6 +323,8 @@ pub(crate) async fn handle_ws_connection(mut websocket: WebSocket, context: Star
                             "duration": snap.duration_ms,
                             "playing": snap.playing,
                             "rate": snap.rate,
+                            "isLeader": is_leader,
+                            "syncOn": sync_on,
                         })).await;
                     }
                 }
@@ -621,6 +634,10 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             let analysis = tokio::task::spawn_blocking(move || {
                 digtrax_deck::analyze(&decoded_for_analysis, 10.0)
             }).await??;
+            // Push the beat sequence into the audio thread so the sync
+            // engine can compute beat-distance against it. Must happen
+            // BEFORE the user can engage Sync.
+            deck_handle.set_beats(&analysis.beats_ms, analysis.bpm);
             send_socket(websocket, json!({
                 "action": "djAnalyzed",
                 "deck": deck,
@@ -658,6 +675,12 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         },
         Action::DjMasterGain { value } => {
             context.mixer()?.handle().set_master_gain(value);
+        },
+        Action::DjSetLeader { deck } => {
+            context.mixer()?.handle().sync().set_leader(deck.map(Into::into));
+        },
+        Action::DjSync { deck, on } => {
+            context.mixer()?.handle().sync().set_sync(deck.into(), on);
         },
 
         // Load quicktag files or playlist

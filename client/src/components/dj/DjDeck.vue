@@ -39,6 +39,29 @@
             </div>
         </div>
 
+        <div class='dj-deck-sync-row'>
+            <button
+                class='dj-deck-pill dj-deck-pill--sync'
+                :class='{ "dj-deck-pill--on": state.syncOn }'
+                :disabled='state.bpm <= 0'
+                @click='toggleSync'
+                :title='syncTitle'
+            >
+                <q-icon name='mdi-sync' size='12px' class='q-mr-xs' />
+                SYNC
+            </button>
+            <button
+                class='dj-deck-pill dj-deck-pill--master'
+                :class='{ "dj-deck-pill--on": state.isLeader }'
+                :disabled='state.bpm <= 0'
+                @click='toggleMaster'
+                :title='masterTitle'
+            >
+                <q-icon name='mdi-crown-outline' size='12px' class='q-mr-xs' />
+                {{ state.isLeader ? 'MASTER' : 'SET MASTER' }}
+            </button>
+        </div>
+
         <DjWaveform :id='id' class='dj-deck-wave' />
 
         <div class='dj-deck-transport'>
@@ -97,6 +120,7 @@ import DjWaveform from './DjWaveform.vue';
 import {
     DeckId, djState,
     loadDeck, playDeck, pauseDeck, stopDeck, setDeckVolume, setDeckRate,
+    setLeader, setSync,
 } from '../../scripts/dj';
 
 const props = defineProps({
@@ -153,6 +177,35 @@ function onRate(v: number | null) {
     if (typeof v === 'number') setDeckRate(props.id, v);
 }
 function onRateReset() { setDeckRate(props.id, 1.0); }
+
+/// SYNC: toggle this deck's follow flag. The audio thread will only
+/// actually correct rate if (a) this is on, AND (b) some OTHER deck is
+/// the leader, AND (c) both decks have analyzed beats. Backend confirms
+/// the actual state via the next djPosition push.
+function toggleSync() {
+    setSync(props.id, !state.value.syncOn);
+}
+
+/// MASTER: make this deck the leader (or clear if already leader). The
+/// other deck with SYNC on follows.
+function toggleMaster() {
+    if (state.value.isLeader) {
+        setLeader(null);
+    } else {
+        setLeader(props.id);
+    }
+}
+
+const syncTitle = computed(() => {
+    if (state.value.bpm <= 0) return 'Waiting for beat analysis…';
+    if (state.value.syncOn) return 'SYNC on — click to disengage';
+    return 'Match this deck\'s tempo + phase to the LEADER deck';
+});
+const masterTitle = computed(() => {
+    if (state.value.bpm <= 0) return 'Waiting for beat analysis…';
+    if (state.value.isLeader) return 'This deck is the LEADER — click to clear';
+    return 'Make this deck the tempo + phase LEADER';
+});
 
 const rateAtNative = computed(() => Math.abs(state.value.rate - 1.0) < 0.005);
 const rateLabel = computed(() => {
@@ -271,6 +324,45 @@ function formatTime(ms: number): string {
 .dj-deck-wave {
     flex: 1;
     min-height: 0;
+}
+
+.dj-deck-sync-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.dj-deck-pill {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full, 9999px);
+    background: transparent;
+    color: var(--color-fg-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all var(--duration-fast, 120ms) var(--ease-standard, ease);
+    white-space: nowrap;
+}
+.dj-deck-pill:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.dj-deck-pill:not(:disabled):hover {
+    color: var(--color-fg);
+    border-color: var(--color-border-strong);
+    background: rgba(255, 255, 255, 0.04);
+}
+.dj-deck-pill--on {
+    color: #001f1c !important;
+    background: var(--color-accent) !important;
+    border-color: var(--color-accent) !important;
+    box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
 .dj-deck-rate {

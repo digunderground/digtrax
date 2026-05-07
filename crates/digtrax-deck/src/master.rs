@@ -22,6 +22,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, Stream, StreamConfig};
 
 use crate::engine::{DeckEngine, DeckHandle};
+use crate::sync::{SyncEngine, SyncHandle};
 use crate::DeckId;
 
 /// `Send`-able handle to the audio engine.
@@ -44,6 +45,10 @@ pub struct MasterMixer {
 pub struct MixerHandle {
     deck_a: DeckHandle,
     deck_b: DeckHandle,
+    /// Sync engine controller — see `SyncHandle::set_leader` /
+    /// `set_sync`. The engine itself runs in the audio callback every
+    /// buffer; this handle just lets the WS layer poke its atomics.
+    sync: SyncHandle,
     /// f32 bits — crossfader in `[-1.0, 1.0]`. `0.0` = center.
     crossfader: Arc<AtomicU32>,
     /// f32 bits — master output gain in `[0.0, 1.0]` (linear). `1.0` = unity.
@@ -124,6 +129,7 @@ fn build_audio_thread() -> Result<(MixerHandle, Stream), Error> {
 
     let (deck_a_engine, deck_a_handle) = DeckEngine::new(sample_rate, channels);
     let (deck_b_engine, deck_b_handle) = DeckEngine::new(sample_rate, channels);
+    let (sync_engine, sync_handle) = SyncEngine::new();
 
     let crossfader = Arc::new(AtomicU32::new(0.0_f32.to_bits()));
     let master_gain = Arc::new(AtomicU32::new(1.0_f32.to_bits()));
@@ -136,6 +142,7 @@ fn build_audio_thread() -> Result<(MixerHandle, Stream), Error> {
         channels,
         deck_a_engine,
         deck_b_engine,
+        sync_engine,
         crossfader.clone(),
         master_gain.clone(),
     )?;
@@ -144,6 +151,7 @@ fn build_audio_thread() -> Result<(MixerHandle, Stream), Error> {
     let handle = MixerHandle {
         deck_a: deck_a_handle,
         deck_b: deck_b_handle,
+        sync: sync_handle,
         crossfader,
         master_gain,
         output_rate: sample_rate,
@@ -159,6 +167,11 @@ impl MixerHandle {
             DeckId::A => &self.deck_a,
             DeckId::B => &self.deck_b,
         }
+    }
+
+    /// Borrow the sync controller.
+    pub fn sync(&self) -> &SyncHandle {
+        &self.sync
     }
 
     /// Set crossfader position. `-1.0` = full deck A, `+1.0` = full deck B,
@@ -198,6 +211,7 @@ fn build_stream(
     channels: u16,
     mut deck_a: DeckEngine,
     mut deck_b: DeckEngine,
+    sync: SyncEngine,
     crossfader: Arc<AtomicU32>,
     master_gain: Arc<AtomicU32>,
 ) -> Result<Stream, Error> {
@@ -217,10 +231,24 @@ fn build_stream(
         if buf_b.len() < out.len() {
             buf_b.resize(out.len(), 0.0);
         }
-        let buf_a = &mut buf_a[..out.len()];
-        let buf_b = &mut buf_b[..out.len()];
-        deck_a.process(buf_a);
-        deck_b.process(buf_b);
+        let buf_a_slice = &mut buf_a[..out.len()];
+        let buf_b_slice = &mut buf_b[..out.len()];
+
+        // Per-buffer pipeline:
+        //   1. tick both decks      — drains commands (Load, Seek,
+        //                              SetBeats, Play/Pause, etc.)
+        //   2. sync.process         — reads each deck's beat_distance,
+        //                              writes corrected rate atomic on
+        //                              the follower
+        //   3. process both decks   — generate audio at the rate the
+        //                              sync engine just wrote
+        // This ordering is sample-accurate: the rate change applies to
+        // the same buffer whose phase produced it.
+        deck_a.tick();
+        deck_b.tick();
+        sync.process(&deck_a, &deck_b);
+        deck_a.process(buf_a_slice);
+        deck_b.process(buf_b_slice);
 
         // Crossfader: -1..+1. Map to t in 0..1 and use cos/sin for equal
         // power. cf=-1 → t=0 → gain_a=cos(0)=1, gain_b=sin(0)=0. cf=0 →
@@ -231,7 +259,7 @@ fn build_stream(
         let gain_b = (t * std::f32::consts::FRAC_PI_2).sin();
         let master = f32::from_bits(master_gain.load(Ordering::Acquire));
 
-        for ((o, a), b) in out.iter_mut().zip(buf_a.iter()).zip(buf_b.iter()) {
+        for ((o, a), b) in out.iter_mut().zip(buf_a_slice.iter()).zip(buf_b_slice.iter()) {
             *o = (*a * gain_a + b * gain_b) * master;
         }
         let _ = n_chan; // suppress unused — channel routing happens inside DeckEngine::process
