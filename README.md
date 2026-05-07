@@ -8,9 +8,18 @@
     <img alt='Supported OS' src='https://img.shields.io/badge/OS-Windows%2C%20Mac%20OS%2C%20Linux-orange'>
 </p>
 
-DigTrax is a cross-platform music metadata tagger built for DJs. It fetches metadata from Beatport, Traxsource, Juno Download, Discogs, MusicBrainz, and Spotify; supports a manual editor and a keyboard-driven Quick Tag editor with energy / mood / genre / custom-tag bindings; and writes back to MP3, AIFF, FLAC, and M4A (AAC, ALAC) files.
+DigTrax is a cross-platform music metadata tagger built for DJs. It fetches metadata from Beatport, Traxsource, Juno Download, Discogs, MusicBrainz, and Spotify; supports a manual editor and a keyboard-driven Quick Tag editor with energy / mood / genre / custom-tag bindings; writes back to MP3, AIFF, FLAC, and M4A (AAC, ALAC) files; and ships a built-in dual-deck **DJ Mode** for auditioning + beat-matching tracks before you commit a tag.
 
-Originally a fork of [OneTagger](https://github.com/Marekkon5/onetagger) by Marekkon5 — UI design originally by Bas Curtiz. DigTrax adds a redesigned UI, universal macOS builds, and a streamlined Quick Tag workflow.
+Originally a fork of [OneTagger](https://github.com/Marekkon5/onetagger) by Marekkon5 — UI design originally by Bas Curtiz. DigTrax adds a redesigned UI, universal macOS builds, a streamlined Quick Tag workflow, and the DJ Mode mixer.
+
+### DJ Mode (v1.8+)
+
+Click the **DJ MODE** pill at the top-right of the player bar to flip the footer into a Mixxx-style dual-deck mixer:
+
+- Drag tracks from Quick Tag onto either deck — the first deck loaded auto-becomes MASTER, the second auto-engages SYNC.
+- Beat detection uses the same algorithms that ship in [Mixxx](https://github.com/mixxxdj/mixxx) — the [QM-DSP](https://github.com/c4dm/qm-dsp) library is vendored under `crates/digtrax-deck/vendor/qm-dsp/`. See [`CREDITS.md`](CREDITS.md) for full attribution.
+- Per-deck rotary knobs for GAIN / HI / MID / LO and a vertical channel fader; per-deck tempo slider (±8%, vinyl-style); equal-power crossfader; ±1/4 beat jump.
+- Closed-loop sync engine runs in the cpal audio callback (PI controller on beat-distance, gain 0.7, ±2% rate cap — Mixxx's `bpmcontrol.cpp::calcSyncedRate` exactly).
 
 ## Installing
 
@@ -81,3 +90,10 @@ DigTrax automatically migrates user settings from any existing OneTagger install
 - **Marekkon5** — Original OneTagger
 - **Bas Curtiz** — Original UI design
 - **SongRec** (Shazam support) — https://github.com/marin-m/SongRec
+- **Mixxx Development Team** — DJ Mode beat detection pipeline (DigTrax v1.8+ vendors QM-DSP and replicates Mixxx's `analyzerqueenmarybeats` data flow). https://github.com/mixxxdj/mixxx
+- **Centre for Digital Music, Queen Mary University of London** — [QM-DSP library](https://github.com/c4dm/qm-dsp) (CSD onset detection + TempoTrackV2 beat tracker)
+- **Mark Borgerding** — [kissfft](https://github.com/mborgerding/kissfft), bundled with QM-DSP
+
+## License
+
+DigTrax is distributed under the **GNU General Public License version 3** (see [`LICENSE`](LICENSE)). Third-party software incorporated into DigTrax — including QM-DSP and kissfft (both GPL-2-or-later) used by DJ Mode — is documented in [`CREDITS.md`](CREDITS.md). The DigTrax binary is therefore an aggregate work distributed as GPL-3 in full.

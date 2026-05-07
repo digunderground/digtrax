@@ -1,3 +1,21 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+//
+// DigTrax — DJ Mode beat detection shim.
+// Copyright (C) 2024-2026 Adam Tout
+//
+// Pipeline mirrors Mixxx's analyzerqueenmarybeats.cpp (Mixxx is
+// © 2001-2026 The Mixxx Development Team, GPL-2-or-later) which
+// drives the vendored QM-DSP source under vendor/qm-dsp/ (QM-DSP is
+// © 2005-2018 Centre for Digital Music, Queen Mary, University of
+// London, GPL-2-or-later).
+//
+// This file is part of DigTrax. DigTrax is free software: you can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either
+// version 3 of the License, or (at your option) any later version.
+// See the LICENSE file at the project root for the full text. The
+// QM-DSP COPYING file (GPL-2) lives at vendor/qm-dsp/COPYING.
+//
 // Thin C wrapper around QM-DSP that runs Mixxx's exact beat-detection
 // pipeline (see research/mixxx/src/analyzer/plugins/analyzerqueenmarybeats.cpp).
 //

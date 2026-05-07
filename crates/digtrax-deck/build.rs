@@ -1,6 +1,10 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // Compiles the vendored QM-DSP source + our C shim into a static lib.
-// QM-DSP is GPL-2 — by linking it the resulting DigTrax binary inherits
-// GPL-2. Acceptable for the private repo per discussion in the plan.
+// QM-DSP and the kissfft submodule are GPL-2-or-later (see
+// vendor/qm-dsp/COPYING + vendor/qm-dsp/ext/kissfft/). Linking them
+// yields an aggregate work that DigTrax distributes under GPL-3 (see
+// LICENSE at the project root + CREDITS.md for attribution).
 
 fn main() {
     let qm_root = "vendor/qm-dsp";

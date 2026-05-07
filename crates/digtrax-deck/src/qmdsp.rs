@@ -6,8 +6,9 @@
 //! `vendor/qm_shim.cc` for the wrapper and `vendor/qm-dsp/` for the
 //! upstream sources.
 //!
-//! License: QM-DSP is GPL-2; linking it makes the resulting DigTrax
-//! binary GPL-2. Acceptable for the private repo per the plan.
+//! License: QM-DSP and the bundled kissfft are GPL-2-or-later (see
+//! `vendor/qm-dsp/COPYING`). Linking them places the DigTrax binary
+//! under GPL-3 as a whole — see `CREDITS.md` for the full attribution.
 
 use std::os::raw::{c_double, c_int};
 
