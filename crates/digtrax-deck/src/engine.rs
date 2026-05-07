@@ -42,6 +42,9 @@ pub struct DeckSnapshot {
     pub playing: bool,
     /// User volume in [0.0, 1.0].
     pub volume: f32,
+    /// Effective rate multiplier (1.0 = native). Pushed to the front-end
+    /// so the BPM badge can show effective playback BPM (file BPM × rate).
+    pub rate: f32,
     /// True if a track is loaded.
     pub loaded: bool,
 }
@@ -81,6 +84,11 @@ pub struct DeckHandle {
     cmd_tx: Sender<DeckCommand>,
     /// f32 bits — user volume in [0.0, 1.0].
     volume: Arc<AtomicU32>,
+    /// f32 bits — user rate multiplier. 1.0 = native speed; 1.5 = 1.5×
+    /// faster (and 1.5× higher pitch — pitch-coupled until Phase 2c
+    /// adds a phase vocoder or SoundTouch FFI). Clamped to [0.5, 2.0]
+    /// in `set_rate`.
+    rate: Arc<AtomicU32>,
     /// True while the deck is producing audio. Audio thread writes;
     /// readers (WS push) read.
     playing: Arc<AtomicBool>,
@@ -98,6 +106,23 @@ impl DeckHandle {
     pub fn set_volume(&self, value: f32) {
         let v = value.clamp(0.0, 1.0);
         self.volume.store(v.to_bits(), Ordering::Release);
+    }
+
+    /// Set the playback rate multiplier. 1.0 = native, 1.5 = 1.5× speed
+    /// (and 1.5× higher pitch — pitch-coupling is acknowledged tech
+    /// debt; Phase 2c swaps in pitch-preserving stretch if needed).
+    /// Clamped to [0.5, 2.0]. Phase 3's sync controller uses this same
+    /// atomic to nudge the slave deck.
+    pub fn set_rate(&self, value: f32) {
+        let v = value.clamp(0.5, 2.0);
+        self.rate.store(v.to_bits(), Ordering::Release);
+    }
+
+    /// Read the current rate multiplier — used by the WS push so the
+    /// frontend's BPM badge can show the effective playback BPM
+    /// (bpm × rate).
+    pub fn rate(&self) -> f32 {
+        f32::from_bits(self.rate.load(Ordering::Acquire))
     }
 
     /// Begin playback. Idempotent — calling Play on an already-playing
@@ -155,6 +180,7 @@ impl DeckHandle {
             duration_ms: to_ms(dur_frames),
             playing: self.playing.load(Ordering::Acquire),
             volume: f32::from_bits(self.volume.load(Ordering::Acquire)),
+            rate: f32::from_bits(self.rate.load(Ordering::Acquire)),
             loaded: dur_frames > 0,
         }
     }
@@ -169,6 +195,7 @@ impl DeckEngine {
         // a handful per UI action).
         let (cmd_tx, cmd_rx) = crossbeam_channel::bounded(32);
         let volume = Arc::new(AtomicU32::new(0.7_f32.to_bits()));
+        let rate = Arc::new(AtomicU32::new(1.0_f32.to_bits()));
         let playing = Arc::new(AtomicBool::new(false));
         let position_frames = Arc::new(AtomicU64::new(0));
         let duration_frames = Arc::new(AtomicU64::new(0));
@@ -176,6 +203,7 @@ impl DeckEngine {
         let handle = DeckHandle {
             cmd_tx,
             volume,
+            rate,
             playing,
             position_frames,
             duration_frames,
@@ -249,12 +277,14 @@ impl DeckEngine {
             return;
         }
         let volume = f32::from_bits(self.handle.volume.load(Ordering::Acquire));
-        // Phase 1: linear-interpolated SRC. The "rate" here is purely
-        // sample-rate conversion (source 44.1 kHz playing into a 48 kHz
-        // output stream needs 44100/48000 ≈ 0.919 source-frames per output-
-        // frame). Phase 2 will multiply this by the user's tempo control
-        // and switch to a rubato resampler for higher quality.
-        let rate_ratio = audio.sample_rate as f64 / self.output_rate as f64;
+        let user_rate = f32::from_bits(self.handle.rate.load(Ordering::Acquire)) as f64;
+        // Phase 2: linear-interpolated SRC × user-rate multiplier.
+        // `audio.sample_rate / output_rate` handles 44.1 → 48 kHz format
+        // conversion; multiplying by `user_rate` (1.0 = native) speeds up
+        // or slows down playback. Pitch couples to speed (vinyl-style) —
+        // Phase 2c may swap in a phase vocoder if pitch preservation is
+        // needed.
+        let rate_ratio = (audio.sample_rate as f64 / self.output_rate as f64) * user_rate;
         let total_frames = audio.frames as f64;
         let n_chan = self.output_channels as usize;
         let n_out_frames = out.len() / n_chan;

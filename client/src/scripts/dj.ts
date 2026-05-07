@@ -37,6 +37,10 @@ export interface DeckState {
     analyzing: boolean;
     /// 0..1 fader position. Sent to backend via `djVolume`.
     userVolume: number;
+    /// Playback rate multiplier (0.5..2.0, 1.0 = native). Pitch-couples
+    /// to speed for now (vinyl-style); Phase 2c may add pitch
+    /// preservation. Phase 3's sync controller writes here too.
+    rate: number;
     /// Detected BPM (Phase 2a — kick tracker). 0 = analysis hasn't
     /// completed yet or failed.
     bpm: number;
@@ -68,6 +72,7 @@ function emptyDeck(id: DeckId): DeckState {
         loading: false,
         analyzing: false,
         userVolume: 0.7,
+        rate: 1.0,
         bpm: 0,
         firstBeat: 0,
         bpmConfidence: 0,
@@ -144,6 +149,15 @@ export function setDeckVolume(id: DeckId, value: number) {
     get1t().send('djVolume', { deck: id, value: v });
 }
 
+/// Set deck playback rate. 1.0 = native, 1.5 = 1.5× speed (and 1.5×
+/// higher pitch — pitch coupling acknowledged). Clamped to [0.5, 2.0].
+export function setDeckRate(id: DeckId, value: number) {
+    const slot = refOf(id);
+    const v = Math.max(0.5, Math.min(2.0, value));
+    slot.rate = v;
+    get1t().send('djRate', { deck: id, value: v });
+}
+
 export function setCrossfader(value: number) {
     const v = Math.max(-1, Math.min(1, value));
     djState.crossfader = v;
@@ -210,6 +224,8 @@ export function onDjEvent(json: any) {
             const pos = Number(json.pos);
             if (Number.isFinite(pos)) slot.position = pos;
             if (typeof json.playing === 'boolean') slot.playing = json.playing;
+            const rate = Number(json.rate);
+            if (Number.isFinite(rate) && rate > 0) slot.rate = rate;
             return;
         }
     }

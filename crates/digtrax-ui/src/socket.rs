@@ -85,6 +85,10 @@ enum Action {
     DjStop { deck: WireDeckId },
     DjSeek { deck: WireDeckId, pos: u64 },
     DjVolume { deck: WireDeckId, value: f32 },
+    /// Manual rate multiplier per deck. 1.0 = native; clamped [0.5, 2.0].
+    /// Phase 3's sync controller writes here too — same atomic on the
+    /// audio thread.
+    DjRate { deck: WireDeckId, value: f32 },
     DjUnload { deck: WireDeckId },
     DjCrossfader { value: f32 },
     DjMasterGain { value: f32 },
@@ -307,6 +311,7 @@ pub(crate) async fn handle_ws_connection(mut websocket: WebSocket, context: Star
                             "pos": snap.position_ms,
                             "duration": snap.duration_ms,
                             "playing": snap.playing,
+                            "rate": snap.rate,
                         })).await;
                     }
                 }
@@ -641,6 +646,9 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         },
         Action::DjVolume { deck, value } => {
             context.mixer()?.handle().deck(deck.into()).set_volume(value);
+        },
+        Action::DjRate { deck, value } => {
+            context.mixer()?.handle().deck(deck.into()).set_rate(value);
         },
         Action::DjUnload { deck } => {
             context.mixer()?.handle().deck(deck.into()).unload();

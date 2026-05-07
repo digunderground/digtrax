@@ -33,8 +33,8 @@
                 </div>
                 <div class='dj-deck-artists'>{{ state.artists.join(', ') || '—' }}</div>
             </div>
-            <div v-if='state.bpm > 0' class='dj-deck-bpm' :title='"Detected " + state.bpm.toFixed(2) + " BPM"'>
-                <span class='dj-deck-bpm-value'>{{ state.bpm.toFixed(1) }}</span>
+            <div v-if='state.bpm > 0' class='dj-deck-bpm' :title='bpmTitle'>
+                <span class='dj-deck-bpm-value'>{{ effectiveBpmStr }}</span>
                 <span class='dj-deck-bpm-unit'>BPM</span>
             </div>
         </div>
@@ -67,6 +67,26 @@
             </div>
             <span class='dj-deck-time'>{{ formatTime(state.position) }} / {{ formatTime(state.duration) }}</span>
         </div>
+
+        <!-- Pitch / rate slider — vinyl-style. Center detent at 1.0 ±
+             5%, double-click resets to 1.0. Range -50%..+50% covers
+             the working DJ tempo-match range (Mixxx default).
+             Pitch couples to speed for now; Phase 2c may add
+             pitch-preserve. -->
+        <div class='dj-deck-rate'>
+            <button
+                class='dj-deck-rate-label'
+                :class='{ "dj-deck-rate-label--off": !rateAtNative }'
+                @dblclick='onRateReset'
+                :title='"Double-click to reset to 1.000×"'
+            >{{ rateLabel }}</button>
+            <q-slider
+                :model-value='state.rate'
+                @update:model-value='onRate'
+                :min='0.5' :max='1.5' :step='0.001'
+                class='dj-deck-rate-slider'
+            />
+        </div>
     </template>
 </div>
 </template>
@@ -76,7 +96,7 @@ import { computed, PropType, ref } from 'vue';
 import DjWaveform from './DjWaveform.vue';
 import {
     DeckId, djState,
-    loadDeck, playDeck, pauseDeck, stopDeck, setDeckVolume,
+    loadDeck, playDeck, pauseDeck, stopDeck, setDeckVolume, setDeckRate,
 } from '../../scripts/dj';
 
 const props = defineProps({
@@ -128,6 +148,31 @@ function onStop() { stopDeck(props.id); }
 function onVolume(v: number | null) {
     setDeckVolume(props.id, typeof v === 'number' ? v : 0);
 }
+
+function onRate(v: number | null) {
+    if (typeof v === 'number') setDeckRate(props.id, v);
+}
+function onRateReset() { setDeckRate(props.id, 1.0); }
+
+const rateAtNative = computed(() => Math.abs(state.value.rate - 1.0) < 0.005);
+const rateLabel = computed(() => {
+    const r = state.value.rate || 1.0;
+    if (rateAtNative.value) return '1.000×';
+    return r.toFixed(3) + '×';
+});
+
+/// Effective playback BPM = file BPM × current rate. Shown in the
+/// badge so the user can see what the deck is actually outputting
+/// when the rate slider is engaged.
+const effectiveBpmStr = computed(() => {
+    const b = state.value.bpm || 0;
+    const r = state.value.rate || 1.0;
+    if (b <= 0) return '—';
+    return (b * r).toFixed(1);
+});
+const bpmTitle = computed(() =>
+    `Detected ${(state.value.bpm || 0).toFixed(2)} BPM × rate ${(state.value.rate || 1.0).toFixed(3)}× = effective ${(((state.value.bpm || 0) * (state.value.rate || 1.0))).toFixed(2)} BPM`
+);
 
 function filename(p?: string): string {
     if (!p) return '';
@@ -226,6 +271,34 @@ function formatTime(ms: number): string {
 .dj-deck-wave {
     flex: 1;
     min-height: 0;
+}
+
+.dj-deck-rate {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.dj-deck-rate-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: var(--radius-full, 9999px);
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-fg-muted);
+    cursor: pointer;
+    min-width: 54px;
+    text-align: center;
+    transition: all var(--duration-fast, 120ms) var(--ease-standard, ease);
+}
+.dj-deck-rate-label--off {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+.dj-deck-rate-slider {
+    flex: 1;
 }
 .dj-deck-title {
     font-weight: 700;
