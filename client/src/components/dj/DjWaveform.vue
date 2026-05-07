@@ -191,9 +191,17 @@ function drawMain() {
         ctx.fillRect(hoverPos.value * w - 1, 0, 2, h);
     }
 
-    // Playhead.
-    ctx.fillStyle = '#00E6C8';
-    ctx.fillRect(playedX - 1, 0, 2, h);
+    // Playhead — bright red so it pops against the orange/mint/sky
+    // spectrum bands and the teal accent used elsewhere in the UI.
+    // No semantic conflict: red isn't used for any other waveform
+    // marker (downbeats are amber, phrase markers cyan, kicks orange).
+    // Slight outer glow makes it readable when it crosses bright bars.
+    ctx.save();
+    ctx.shadowColor = 'rgba(255, 45, 71, 0.85)';
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = '#FF2D47';
+    ctx.fillRect(playedX - 1.5, 0, 3, h);
+    ctx.restore();
 }
 
 function drawMini() {
@@ -256,7 +264,9 @@ function drawMini() {
     ctx.strokeRect(winX + 0.5, 0.5, winW - 1, h - 1);
     ctx.restore();
 
-    ctx.fillStyle = '#00E6C8';
+    // Mini playhead — same red as the main canvas so the eye links
+    // them.
+    ctx.fillStyle = '#FF2D47';
     ctx.fillRect(playedX - 0.5, 0, 1, h);
 }
 

@@ -101,7 +101,21 @@ pub fn analyze(audio: &DecodedAudio, bars_per_sec: f32) -> Result<BeatAnalysis, 
         }
     };
 
-    let beats_ms: Vec<u64> = qm.beats_seconds.iter()
+    // Half-beat correction. QM-DSP locks onto the strongest periodic
+    // signal — usually the kick, but on tracks where the snare/clap on
+    // beats 2 + 4 is louder than the kick on 1 + 3, the algorithm
+    // returns a beat-grid offset by half a period (everything sits on
+    // snares). Mixxx solves this in BeatUtils by re-scoring the grid
+    // against a low-band envelope: kicks dominate the 30-150 Hz band,
+    // snares don't. If shifting all beats by +period/2 gives higher
+    // mean low-band energy, we landed on snares — shift the whole grid.
+    let beats_seconds = if qm.beats_seconds.len() >= 4 && qm.bpm > 0.0 {
+        maybe_shift_to_kicks(&qm.beats_seconds, &mono, sample_rate, qm.bpm as f32)
+    } else {
+        qm.beats_seconds.clone()
+    };
+
+    let beats_ms: Vec<u64> = beats_seconds.iter()
         .map(|&s| (s * 1000.0).round().max(0.0) as u64)
         .collect();
     let first_beat_ms = beats_ms.first().copied().unwrap_or(0);
@@ -109,13 +123,105 @@ pub fn analyze(audio: &DecodedAudio, bars_per_sec: f32) -> Result<BeatAnalysis, 
 
     // Confidence: fraction of inter-beat intervals within 5% of median.
     // High = consistent beats, low = analyzer hunting / weak pulse.
-    let confidence = compute_confidence(&qm.beats_seconds);
+    let confidence = compute_confidence(&beats_seconds);
 
     log::info!("qmdsp: {:.3} BPM, {} beats, confidence {:.2}",
                bpm, beats_ms.len(), confidence);
 
     let spectrum_bars = compute_spectrum(&mono, sample_rate, bars_per_sec);
     Ok(BeatAnalysis { bpm, first_beat_ms, confidence, beats_ms, spectrum_bars })
+}
+
+/// Half-beat correction (kick-vs-snare disambiguation).
+///
+/// QM-DSP's TempoTrackV2 locks onto the strongest periodic onset, but
+/// on tracks where the backbeat (snare on 2 + 4) is louder than the
+/// kick on 1 + 3, the returned grid sits on snares — every "beat 1"
+/// is actually a snare. Audibly the user notices: yellow downbeat
+/// markers land between kicks instead of on them.
+///
+/// Mixxx's `BeatUtils` solves this by re-scoring against a low-band
+/// envelope: kicks dominate the 30-150 Hz band, snares don't. We do
+/// the same here:
+///   1. 30-150 Hz zero-phase bandpass on the mono mixdown.
+///   2. Half-wave-rectified, squared, smoothed envelope.
+///   3. Read envelope at every detected beat position.
+///   4. Read envelope at every (beat + period/2) position.
+///   5. Whichever set has the HIGHER mean energy is the kick set.
+///   6. If the shifted set wins, return shifted beats.
+///
+/// Returns the (possibly shifted) beat sequence in seconds.
+fn maybe_shift_to_kicks(
+    beats_seconds: &[f64],
+    mono: &[f64],
+    sample_rate: f64,
+    bpm: f32,
+) -> Vec<f64> {
+    if bpm <= 0.0 || beats_seconds.len() < 4 {
+        return beats_seconds.to_vec();
+    }
+    let period_seconds = 60.0 / bpm as f64;
+    let half_period = period_seconds * 0.5;
+
+    // 30-150 Hz envelope — same band as the kick tracker we used
+    // pre-QM-DSP (this is what the band sounds like for kicks).
+    // 200 Hz envelope rate gives 5ms granularity, plenty to read at
+    // each beat.
+    let bp = bandpass_zero_phase(mono, sample_rate, KICK_LO_HZ, KICK_HI_HZ);
+    let env = envelope_follower(&bp, sample_rate, ENV_RATE, ENV_LPF_HZ);
+    if env.len() < 16 { return beats_seconds.to_vec(); }
+
+    // Read energy at a beat position. Average a small window around
+    // the position so we catch the actual transient even if the kick
+    // is a few ms off the algorithmic beat.
+    let read_energy = |t_seconds: f64| -> f64 {
+        let center = (t_seconds * ENV_RATE) as i64;
+        let half = 2i64; // ±10 ms window
+        let lo = center.saturating_sub(half).max(0) as usize;
+        let hi = ((center + half) as usize).min(env.len().saturating_sub(1));
+        if lo > hi { return 0.0; }
+        let mut sum = 0f64;
+        for i in lo..=hi { sum += env[i]; }
+        sum / (hi - lo + 1) as f64
+    };
+
+    let mut sum_orig = 0f64;
+    let mut sum_shifted = 0f64;
+    let mut n_orig = 0usize;
+    let mut n_shifted = 0usize;
+    for &t in beats_seconds {
+        sum_orig += read_energy(t);
+        n_orig += 1;
+        let t_shifted = t + half_period;
+        // Only count shifted positions that still fall inside the
+        // analyzed audio range — trailing beats can shift past the
+        // end of the envelope.
+        if (t_shifted * ENV_RATE) as usize <= env.len().saturating_sub(1) {
+            sum_shifted += read_energy(t_shifted);
+            n_shifted += 1;
+        }
+    }
+    if n_orig == 0 || n_shifted == 0 { return beats_seconds.to_vec(); }
+    let mean_orig = sum_orig / n_orig as f64;
+    let mean_shifted = sum_shifted / n_shifted as f64;
+
+    log::info!(
+        "qmdsp: half-beat check — orig low-band energy {:.4}, shifted {:.4} ({}× stronger)",
+        mean_orig, mean_shifted,
+        if mean_orig > 0.0 { mean_shifted / mean_orig } else { 0.0 },
+    );
+
+    // Threshold: only shift if the shifted set is clearly stronger
+    // (≥ 15% more energy). At parity we trust QM-DSP — the shift is
+    // an irreversible 180° flip on the user's beatgrid, so the
+    // evidence has to be solid.
+    if mean_shifted > mean_orig * 1.15 {
+        log::info!("qmdsp: shifting beat grid by +{}ms (kick-on-snare correction)",
+                   (half_period * 1000.0) as i64);
+        beats_seconds.iter().map(|&t| t + half_period).collect()
+    } else {
+        beats_seconds.to_vec()
+    }
 }
 
 fn compute_confidence(beats_seconds: &[f64]) -> f32 {

@@ -223,16 +223,22 @@ export function setMasterGain(value: number) {
     get1t().send('djMasterGain', { value: v });
 }
 
-/// Pick the sync leader. `null` clears (no leader). The follower
-/// deck(s) need `setSync(id, true)` separately.
+/// Pick the sync leader. `null` clears (no leader). Optimistically
+/// updates local state so subsequent code (e.g. the auto-sync logic
+/// in `onDjEvent`) sees the new leader immediately rather than
+/// waiting for the next 33Hz `djPosition` push to round-trip.
 export function setLeader(deck: DeckId | null) {
+    djState.deckA.isLeader = deck === 'a';
+    djState.deckB.isLeader = deck === 'b';
     get1t().send('djSetLeader', { deck });
 }
 
 /// Toggle sync on a deck. Backend will only correct rate when (a) sync
 /// is on, AND (b) some OTHER deck is the leader, AND (c) both have
-/// analyzed beats. The 33Hz djPosition push reports the actual state.
+/// analyzed beats. Optimistic local update — backend confirms via
+/// the 33Hz `djPosition` push.
 export function setSync(deck: DeckId, on: boolean) {
+    refOf(deck).syncOn = on;
     get1t().send('djSync', { deck, on });
 }
 
@@ -327,18 +333,24 @@ export function onDjEvent(json: any) {
                 : [];
             slot.analyzing = false;
 
-            // Auto-master / auto-sync — DJ ergonomics. The "first deck
-            // loaded" becomes the LEADER; the second deck loaded gets
-            // SYNC engaged automatically so the user can drop two
-            // tracks and have them already locked. Done after analysis
-            // so we have BPM data for the sync to actually take effect.
+            // Auto-master / auto-sync — DJ ergonomics. Mixxx-style
+            // group sync: both decks in the sync group show SYNC on,
+            // one of them is also the LEADER (master). First track
+            // loaded becomes leader AND has sync engaged; second
+            // track also has sync engaged so the pair is locked the
+            // moment both finish analysis.
+            //
+            // Local state is updated optimistically inside setLeader /
+            // setSync so the `anyLeader` check below sees the newly-
+            // assigned leader without waiting for the 33Hz backend
+            // push to round-trip — otherwise the second deck's
+            // analyze handler can race and self-promote to leader.
             if (slot.bpm > 0) {
-                const otherId: DeckId = id === 'a' ? 'b' : 'a';
-                const otherLeader = refOf(otherId).isLeader;
                 const anyLeader = djState.deckA.isLeader || djState.deckB.isLeader;
                 if (!anyLeader) {
                     setLeader(id);
-                } else if (otherLeader && !slot.syncOn) {
+                    setSync(id, true);
+                } else if (!slot.syncOn) {
                     setSync(id, true);
                 }
             }
