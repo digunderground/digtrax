@@ -211,7 +211,7 @@ fn build_stream(
     channels: u16,
     mut deck_a: DeckEngine,
     mut deck_b: DeckEngine,
-    sync: SyncEngine,
+    mut sync: SyncEngine,
     crossfader: Arc<AtomicU32>,
     master_gain: Arc<AtomicU32>,
 ) -> Result<Stream, Error> {
@@ -246,7 +246,7 @@ fn build_stream(
         // the same buffer whose phase produced it.
         deck_a.tick();
         deck_b.tick();
-        sync.process(&deck_a, &deck_b);
+        sync.process(&mut deck_a, &mut deck_b);
         deck_a.process(buf_a_slice);
         deck_b.process(buf_b_slice);
 

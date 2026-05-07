@@ -314,6 +314,26 @@ impl DeckEngine {
     /// the per-buffer atomic store).
     pub(crate) fn position_frames(&self) -> f64 { self.position_frames }
 
+    /// Read-only view of the detected beat positions (in source frames).
+    /// Used by the sync engine's snap-seek to align the follower's
+    /// nearest beat with the leader's phase on sync engage.
+    pub(crate) fn beats_frames(&self) -> &[u64] { &self.beats_frames }
+
+    /// Direct write of the playhead. Called by the sync engine in the
+    /// audio callback when it engages sync — does a one-shot snap to
+    /// the leader-aligned beat so the PI controller doesn't have to
+    /// drag the follower across half a beat at the rate cap. Bypasses
+    /// the command channel because we're already on the audio thread.
+    pub(crate) fn write_position_frames(&mut self, f: f64) {
+        let clamped = if let Some(audio) = &self.audio {
+            f.clamp(0.0, audio.frames.saturating_sub(1) as f64)
+        } else {
+            0.0
+        };
+        self.position_frames = clamped;
+        self.handle.position_frames.store(clamped as u64, std::sync::atomic::Ordering::Release);
+    }
+
     /// Beat distance: phase fraction in `[0.0, 1.0)` between the
     /// previous beat and the next beat. Returns `None` if the deck
     /// has no beats yet (analysis pending), no track loaded, or the
