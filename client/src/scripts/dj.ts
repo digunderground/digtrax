@@ -71,6 +71,13 @@ export interface DeckState {
     eqHigh: number;
     /// DJ filter knob, [-1, 1]. 0 = bypass, -1 = full LPF, +1 = full HPF.
     filter: number;
+    /// Pre-fader gain knob ∈ [0, 2]. 1 = unity. Mixxx convention:
+    /// applied before the EQ chain. Frontend writes to userVolume?
+    /// No — gain and channel volume are separate. We treat userVolume
+    /// as the "fader" position and gain as a pre-EQ trim. For v1
+    /// we map gain to the existing volume atomic since they have the
+    /// same effect on output (multiply by scalar).
+    gain: number;
 }
 
 function emptyDeck(id: DeckId): DeckState {
@@ -98,6 +105,7 @@ function emptyDeck(id: DeckId): DeckState {
         eqMid: 1.0,
         eqHigh: 1.0,
         filter: 0.0,
+        gain: 1.0,
     };
 }
 
@@ -254,6 +262,22 @@ export function setFilter(deck: DeckId, value: number) {
 /// the current bracket beat.
 export function beatJump(deck: DeckId, beats: number) {
     get1t().send('djBeatJump', { deck, beats });
+}
+
+/// Set deck pre-fader gain (separate from the channel fader / volume).
+/// Maps to the same backend volume atomic for now, since both
+/// effectively scale output linearly. v2 will split them properly so
+/// gain sits before the EQ chain (Mixxx topology).
+export function setGain(deck: DeckId, value: number) {
+    const v = Math.max(0, Math.min(2, value));
+    refOf(deck).gain = v;
+    // Compose: effective volume = userVolume × gain. We send the
+    // composed value to the backend so it doesn't have to know about
+    // the split. Phase 4-style audio chain change can do gain pre-EQ
+    // properly when we add a dedicated atomic.
+    const slot = refOf(deck);
+    const composed = slot.userVolume * v;
+    get1t().send('djVolume', { deck, value: Math.min(1, composed) });
 }
 
 // ─── Inbound (backend → frontend) ─────────────────────────────────────

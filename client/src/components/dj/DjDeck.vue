@@ -1,44 +1,54 @@
 <template>
-<!-- Single deck panel. Phase 1 ships:
-       - Drop zone showing "Drop a track" placeholder when empty
-       - Track meta (deck letter, title, artists)
-       - Transport (play/pause/stop)
-       - Volume fader
-       - Position scrubber + time display
-     Phase 2 adds the waveform; Phase 3 adds SYNC/MASTER; Phase 4 adds
-     EQ + filter; Phase 5 adds beat-jump. -->
+<!-- Mixxx-style deck panel. Top-down stack:
+       Header  : artwork | meta | times | BPM | deck letter
+       Sync row: SYNC + MASTER + beatjump
+       Waveform: scrolling main + mini overview
+       Transport: play / pause / stop, time label
+     This whole thing also doubles as the drag-target — drop a track
+     anywhere on the panel to load it. -->
 <div
     class='dj-deck'
-    :class='{ "dj-deck--empty": !state.path, "dj-deck--drag": dragOver, "dj-deck--loading": state.loading }'
+    :class='{ "dj-deck--empty": !state.path, "dj-deck--drag": dragOver, "dj-deck--loading": state.loading, "dj-deck--mirror": id === "b" }'
     @dragenter.prevent='onDragEnter'
     @dragover.prevent='onDragOver'
     @dragleave='onDragLeave'
     @drop.prevent='onDrop'
 >
-    <!-- Empty deck = drop zone -->
     <div v-if='!state.path' class='dj-deck-empty'>
         <q-icon name='mdi-tray-arrow-down' size='28px' class='dj-deck-empty-icon' />
         <div class='dj-deck-empty-label'>Drop track on Deck {{ id.toUpperCase() }}</div>
     </div>
 
-    <!-- Loaded deck -->
     <template v-else>
-        <div class='dj-deck-meta-row'>
-            <div class='dj-deck-id'>{{ id.toUpperCase() }}</div>
+        <!-- Header strip: art / meta / time / BPM / deck letter -->
+        <div class='dj-deck-header'>
+            <q-img
+                :src='artUrl'
+                class='dj-deck-art'
+                :placeholder-src='PLACEHOLDER_IMG'
+            >
+                <template v-slot:error>
+                    <q-img :src='PLACEHOLDER_IMG' class='dj-deck-art' />
+                </template>
+            </q-img>
             <div class='dj-deck-meta'>
                 <div class='dj-deck-title' :title='state.title'>
                     {{ state.title || filename(state.path) }}
-                    <span v-if='state.loading' class='dj-deck-loading'>decoding…</span>
-                    <span v-else-if='state.analyzing' class='dj-deck-loading'>analyzing…</span>
                 </div>
-                <div class='dj-deck-artists'>{{ state.artists.join(', ') || '—' }}</div>
+                <div class='dj-deck-artist'>{{ state.artists.join(', ') || '—' }}</div>
             </div>
-            <div v-if='state.bpm > 0' class='dj-deck-bpm' :title='bpmTitle'>
-                <span class='dj-deck-bpm-value'>{{ effectiveBpmStr }}</span>
-                <span class='dj-deck-bpm-unit'>BPM</span>
+            <div class='dj-deck-times'>
+                <div class='dj-deck-time-elapsed'>-{{ formatTime(remainingMs) }}</div>
+                <div class='dj-deck-time-total'>{{ formatTime(state.duration) }}</div>
             </div>
+            <div v-if='state.bpm > 0' class='dj-deck-bpm-block' :title='bpmTitle'>
+                <div class='dj-deck-bpm-value'>{{ effectiveBpmStr }}</div>
+                <div v-if='ratePctStr' class='dj-deck-rate-pct' :class='ratePctClass'>{{ ratePctStr }}</div>
+            </div>
+            <div class='dj-deck-id'>{{ id.toUpperCase() }}</div>
         </div>
 
+        <!-- SYNC + MASTER + beatjump  (mirrored on deck B) -->
         <div class='dj-deck-sync-row'>
             <button
                 class='dj-deck-pill dj-deck-pill--sync'
@@ -46,30 +56,28 @@
                 :disabled='state.bpm <= 0'
                 @click='toggleSync'
                 :title='syncTitle'
-            >
-                <q-icon name='mdi-sync' size='12px' class='q-mr-xs' />
-                SYNC
-            </button>
+            >SYNC</button>
             <button
                 class='dj-deck-pill dj-deck-pill--master'
                 :class='{ "dj-deck-pill--on": state.isLeader }'
                 :disabled='state.bpm <= 0'
                 @click='toggleMaster'
                 :title='masterTitle'
-            >
-                <q-icon name='mdi-crown-outline' size='12px' class='q-mr-xs' />
-                {{ state.isLeader ? 'MASTER' : 'SET MASTER' }}
-            </button>
+            >MASTER</button>
+            <div class='dj-deck-jump' :class='{ "dj-deck-jump--disabled": !state.beats.length }'>
+                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(-4)' title='-4 beats'>⟪4</button>
+                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(-1)' title='-1 beat'>⟨1</button>
+                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(1)'  title='+1 beat'>1⟩</button>
+                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(4)'  title='+4 beats'>4⟫</button>
+            </div>
         </div>
 
-        <div class='dj-deck-wave-row'>
-            <DjEqStrip :id='id' class='dj-deck-eq' />
-            <DjWaveform :id='id' class='dj-deck-wave' />
-        </div>
+        <DjWaveform :id='id' class='dj-deck-wave' />
 
+        <!-- Transport row: play / pause + analyzing / loading hint -->
         <div class='dj-deck-transport'>
             <q-btn
-                round flat dense size='md'
+                round dense unelevated
                 :icon='state.playing ? "mdi-pause" : "mdi-play"'
                 class='dj-deck-play'
                 :disable='state.loading'
@@ -82,43 +90,11 @@
                 :disable='state.loading'
                 @click='onStop'
             />
-            <div class='dj-deck-volume'>
-                <q-icon name='mdi-volume-medium' size='14px' class='q-mr-xs' />
-                <q-slider
-                    :model-value='state.userVolume'
-                    @update:model-value='onVolume'
-                    :min='0' :max='1' :step='0.01'
-                    class='dj-deck-volume-slider'
-                />
+            <div class='dj-deck-status'>
+                <span v-if='state.loading' class='dj-deck-loading-text'>decoding…</span>
+                <span v-else-if='state.analyzing' class='dj-deck-loading-text'>analyzing beats…</span>
+                <span v-else class='dj-deck-pos-text'>{{ formatTime(state.position) }}</span>
             </div>
-            <span class='dj-deck-time'>{{ formatTime(state.position) }} / {{ formatTime(state.duration) }}</span>
-            <!-- Beat jump. Disabled until BPM detection finishes. -->
-            <div class='dj-deck-jump' :class='{ "dj-deck-jump--disabled": !state.beats.length }'>
-                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(-4)' title='Jump back 4 beats'>⟪4</button>
-                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(-1)' title='Jump back 1 beat'>⟨1</button>
-                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(1)' title='Jump forward 1 beat'>1⟩</button>
-                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(4)' title='Jump forward 4 beats'>4⟫</button>
-            </div>
-        </div>
-
-        <!-- Pitch / rate slider — vinyl-style. Center detent at 1.0 ±
-             5%, double-click resets to 1.0. Range -50%..+50% covers
-             the working DJ tempo-match range (Mixxx default).
-             Pitch couples to speed for now; Phase 2c may add
-             pitch-preserve. -->
-        <div class='dj-deck-rate'>
-            <button
-                class='dj-deck-rate-label'
-                :class='{ "dj-deck-rate-label--off": !rateAtNative }'
-                @dblclick='onRateReset'
-                :title='"Double-click to reset to 1.000×"'
-            >{{ rateLabel }}</button>
-            <q-slider
-                :model-value='state.rate'
-                @update:model-value='onRate'
-                :min='0.5' :max='1.5' :step='0.001'
-                class='dj-deck-rate-slider'
-            />
         </div>
     </template>
 </div>
@@ -127,12 +103,13 @@
 <script lang='ts' setup>
 import { computed, PropType, ref } from 'vue';
 import DjWaveform from './DjWaveform.vue';
-import DjEqStrip from './DjEqStrip.vue';
 import {
     DeckId, djState,
-    loadDeck, playDeck, pauseDeck, stopDeck, setDeckVolume, setDeckRate,
+    loadDeck, playDeck, pauseDeck, stopDeck,
     setLeader, setSync, beatJump,
 } from '../../scripts/dj';
+import { PLACEHOLDER_IMG } from '../../scripts/quicktag';
+import { httpUrl } from '../../scripts/utils';
 
 const props = defineProps({
     id: { required: true, type: String as PropType<DeckId> },
@@ -144,6 +121,12 @@ const state = computed(() =>
 
 const dragOver = ref(false);
 
+const artUrl = computed(() =>
+    state.value.path
+        ? `${httpUrl()}/thumb?path=${encodeURIComponent(state.value.path)}`
+        : ''
+);
+
 function onDragEnter(e: DragEvent) {
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
     dragOver.value = true;
@@ -153,9 +136,6 @@ function onDragOver(e: DragEvent) {
     dragOver.value = true;
 }
 function onDragLeave(_e: DragEvent) { dragOver.value = false; }
-
-/// Drop handler. Reads `application/x-digtrax-track` (rich payload from
-/// Quick Tag / Tag Editor rows) or falls back to `text/plain` (raw path).
 function onDrop(e: DragEvent) {
     dragOver.value = false;
     const dt = e.dataTransfer;
@@ -168,11 +148,8 @@ function onDrop(e: DragEvent) {
             loadDeck(props.id, payload.path, payload.title, payload.artists);
             return;
         }
-    } catch (_) { /* not JSON — try as path */ }
-    // Plain string path fallback (legacy).
-    if (typeof raw === 'string' && raw.startsWith('/')) {
-        loadDeck(props.id, raw);
-    }
+    } catch (_) { /* not JSON */ }
+    if (typeof raw === 'string' && raw.startsWith('/')) loadDeck(props.id, raw);
 }
 
 function togglePlay() {
@@ -180,38 +157,44 @@ function togglePlay() {
     else playDeck(props.id);
 }
 function onStop() { stopDeck(props.id); }
-function onVolume(v: number | null) {
-    setDeckVolume(props.id, typeof v === 'number' ? v : 0);
-}
-
-function onRate(v: number | null) {
-    if (typeof v === 'number') setDeckRate(props.id, v);
-}
-function onRateReset() { setDeckRate(props.id, 1.0); }
-
-/// SYNC: toggle this deck's follow flag. The audio thread will only
-/// actually correct rate if (a) this is on, AND (b) some OTHER deck is
-/// the leader, AND (c) both decks have analyzed beats. Backend confirms
-/// the actual state via the next djPosition push.
-function toggleSync() {
-    setSync(props.id, !state.value.syncOn);
-}
-
-/// MASTER: make this deck the leader (or clear if already leader). The
-/// other deck with SYNC on follows.
 function onJump(beats: number) { beatJump(props.id, beats); }
+function toggleSync() { setSync(props.id, !state.value.syncOn); }
 function toggleMaster() {
-    if (state.value.isLeader) {
-        setLeader(null);
-    } else {
-        setLeader(props.id);
-    }
+    if (state.value.isLeader) setLeader(null);
+    else setLeader(props.id);
 }
 
+const remainingMs = computed(() =>
+    Math.max(0, state.value.duration - state.value.position)
+);
+
+const effectiveBpmStr = computed(() => {
+    const b = state.value.bpm || 0;
+    const r = state.value.rate || 1.0;
+    if (b <= 0) return '—';
+    return (b * r).toFixed(2);
+});
+
+const ratePctStr = computed(() => {
+    const r = state.value.rate || 1.0;
+    if (Math.abs(r - 1.0) < 0.001) return '';
+    const pct = (r - 1.0) * 100;
+    return `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
+});
+const ratePctClass = computed(() => {
+    const r = state.value.rate || 1.0;
+    if (r > 1.0) return 'dj-deck-rate-pct--up';
+    if (r < 1.0) return 'dj-deck-rate-pct--down';
+    return '';
+});
+
+const bpmTitle = computed(() =>
+    `Detected ${(state.value.bpm || 0).toFixed(2)} BPM × rate ${(state.value.rate || 1.0).toFixed(3)}× = ${(((state.value.bpm || 0) * (state.value.rate || 1.0))).toFixed(2)} BPM`
+);
 const syncTitle = computed(() => {
     if (state.value.bpm <= 0) return 'Waiting for beat analysis…';
     if (state.value.syncOn) return 'SYNC on — click to disengage';
-    return 'Match this deck\'s tempo + phase to the LEADER deck';
+    return 'Sync to MASTER deck\'s tempo + phase';
 });
 const masterTitle = computed(() => {
     if (state.value.bpm <= 0) return 'Waiting for beat analysis…';
@@ -219,32 +202,11 @@ const masterTitle = computed(() => {
     return 'Make this deck the tempo + phase LEADER';
 });
 
-const rateAtNative = computed(() => Math.abs(state.value.rate - 1.0) < 0.005);
-const rateLabel = computed(() => {
-    const r = state.value.rate || 1.0;
-    if (rateAtNative.value) return '1.000×';
-    return r.toFixed(3) + '×';
-});
-
-/// Effective playback BPM = file BPM × current rate. Shown in the
-/// badge so the user can see what the deck is actually outputting
-/// when the rate slider is engaged.
-const effectiveBpmStr = computed(() => {
-    const b = state.value.bpm || 0;
-    const r = state.value.rate || 1.0;
-    if (b <= 0) return '—';
-    return (b * r).toFixed(1);
-});
-const bpmTitle = computed(() =>
-    `Detected ${(state.value.bpm || 0).toFixed(2)} BPM × rate ${(state.value.rate || 1.0).toFixed(3)}× = effective ${(((state.value.bpm || 0) * (state.value.rate || 1.0))).toFixed(2)} BPM`
-);
-
 function filename(p?: string): string {
     if (!p) return '';
     const slashes = p.replace(/\\/g, '/');
     return slashes.slice(slashes.lastIndexOf('/') + 1);
 }
-
 function formatTime(ms: number): string {
     const s = Math.max(0, Math.round((ms || 0) / 1000));
     return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
@@ -256,19 +218,22 @@ function formatTime(ms: number): string {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 10px 12px;
+    padding: 8px 12px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm, 6px);
     background: rgba(255, 255, 255, 0.02);
-    min-height: 200px; /* taller now that the deck owns the waveform */
+    min-height: 220px;
 }
 .dj-deck--drag {
     border-color: var(--color-accent);
     background: rgba(0, 210, 191, 0.06);
 }
-.dj-deck--loading {
-    opacity: 0.85;
-}
+.dj-deck--loading { opacity: 0.85; }
+/* Mirror deck B layout where the deck letter sits on the right (Mixxx
+   convention: A on left, B on right). For now both decks use the same
+   header order but flag is here for further mirroring polish. */
+.dj-deck--mirror {}
+
 .dj-deck-empty {
     display: flex;
     flex-direction: column;
@@ -285,11 +250,65 @@ function formatTime(ms: number): string {
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }
-.dj-deck-meta-row {
-    display: flex;
-    align-items: center;
+
+/* Header — artwork / meta / times / BPM / deck letter */
+.dj-deck-header {
+    display: grid;
+    grid-template-columns: 56px 1fr auto auto auto;
+    grid-template-rows: auto;
     gap: 10px;
+    align-items: center;
 }
+.dj-deck-art {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-xs, 4px);
+    flex-shrink: 0;
+    border: 1px solid var(--color-border);
+}
+.dj-deck-meta {
+    min-width: 0;
+}
+.dj-deck-title {
+    font-weight: 700;
+    color: var(--color-fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+}
+.dj-deck-artist {
+    font-size: 11px;
+    color: var(--color-fg-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dj-deck-times {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-fg-muted);
+    line-height: 1.3;
+}
+.dj-deck-time-elapsed { color: var(--color-fg); font-weight: 700; }
+.dj-deck-bpm-block {
+    text-align: right;
+    line-height: 1.1;
+}
+.dj-deck-bpm-value {
+    font-family: var(--font-mono);
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--color-accent);
+}
+.dj-deck-rate-pct {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+}
+.dj-deck-rate-pct--up   { color: #ff5a4b; }
+.dj-deck-rate-pct--down { color: #5ab9ff; }
 .dj-deck-id {
     width: 28px;
     height: 28px;
@@ -302,95 +321,51 @@ function formatTime(ms: number): string {
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-}
-.dj-deck-meta {
-    flex: 1;
-    min-width: 0;
-}
-.dj-deck-bpm {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 4px;
-    padding: 3px 10px;
-    border-radius: var(--radius-full, 9999px);
-    border: 1px solid var(--color-accent);
-    background: rgba(0, 210, 191, 0.10);
-    box-shadow: 0 0 6px rgba(0, 210, 191, 0.18);
-    flex-shrink: 0;
-}
-.dj-deck-bpm-value {
-    font-family: var(--font-mono);
-    font-weight: 800;
-    font-size: 14px;
-    color: var(--color-accent);
-}
-.dj-deck-bpm-unit {
-    font-family: var(--font-mono);
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    color: var(--color-accent);
-    opacity: 0.7;
-}
-.dj-deck-wave-row {
-    display: flex;
-    flex: 1;
-    min-height: 0;
-    gap: 6px;
-}
-.dj-deck-eq {
-    flex-shrink: 0;
-}
-.dj-deck-wave {
-    flex: 1;
-    min-height: 0;
-    min-width: 0;
 }
 
+/* Sync + master + beatjump row */
 .dj-deck-sync-row {
     display: flex;
-    gap: 6px;
     align-items: center;
+    gap: 6px;
 }
 .dj-deck-pill {
     display: inline-flex;
     align-items: center;
     height: 22px;
-    padding: 0 10px;
+    padding: 0 12px;
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-full, 9999px);
+    border-radius: var(--radius-xs, 3px);
     background: transparent;
     color: var(--color-fg-muted);
     font-family: var(--font-mono);
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     cursor: pointer;
-    transition: all var(--duration-fast, 120ms) var(--ease-standard, ease);
-    white-space: nowrap;
+    transition: all var(--duration-fast, 120ms) ease;
 }
-.dj-deck-pill:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
+.dj-deck-pill:disabled { opacity: 0.4; cursor: not-allowed; }
 .dj-deck-pill:not(:disabled):hover {
     color: var(--color-fg);
     border-color: var(--color-border-strong);
-    background: rgba(255, 255, 255, 0.04);
 }
 .dj-deck-pill--on {
     color: #001f1c !important;
     background: var(--color-accent) !important;
     border-color: var(--color-accent) !important;
-    box-shadow: 0 0 8px var(--color-accent-glow);
+}
+.dj-deck-pill--master.dj-deck-pill--on {
+    background: #ff8c2e !important;
+    border-color: #ff8c2e !important;
+    color: #1a0e00 !important;
 }
 
 .dj-deck-jump {
     display: inline-flex;
     gap: 2px;
-    margin-left: 4px;
+    margin-left: auto;
 }
 .dj-deck-jump--disabled { opacity: 0.4; }
 .dj-deck-jump-btn {
@@ -403,7 +378,6 @@ function formatTime(ms: number): string {
     background: transparent;
     color: var(--color-fg-muted);
     cursor: pointer;
-    transition: all var(--duration-fast, 120ms) ease;
 }
 .dj-deck-jump-btn:disabled { cursor: not-allowed; }
 .dj-deck-jump-btn:not(:disabled):hover {
@@ -412,86 +386,32 @@ function formatTime(ms: number): string {
     background: rgba(0, 210, 191, 0.08);
 }
 
-.dj-deck-rate {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.dj-deck-rate-label {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    padding: 2px 8px;
-    border-radius: var(--radius-full, 9999px);
-    border: 1px solid var(--color-border);
-    background: transparent;
-    color: var(--color-fg-muted);
-    cursor: pointer;
-    min-width: 54px;
-    text-align: center;
-    transition: all var(--duration-fast, 120ms) var(--ease-standard, ease);
-}
-.dj-deck-rate-label--off {
-    color: var(--color-accent);
-    border-color: var(--color-accent);
-}
-.dj-deck-rate-slider {
+.dj-deck-wave {
     flex: 1;
+    min-height: 0;
+    min-width: 0;
 }
-.dj-deck-title {
-    font-weight: 700;
-    color: var(--color-fg);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.dj-deck-loading {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--color-fg-subtle);
-    margin-left: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}
-.dj-deck-artists {
-    font-size: 12px;
-    color: var(--color-fg-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+
+/* Transport row */
 .dj-deck-transport {
     display: flex;
     align-items: center;
     gap: 6px;
 }
-.dj-deck-play {
-    color: var(--color-accent) !important;
-}
-.dj-deck-volume {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    gap: 4px;
-    color: var(--color-fg-muted);
-}
-.dj-deck-volume-slider {
-    flex: 1;
-}
-.dj-deck-scrub {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.dj-deck-time {
+.dj-deck-play   { color: var(--color-accent) !important; }
+.dj-deck-status {
+    margin-left: auto;
     font-family: var(--font-mono);
     font-size: 11px;
     color: var(--color-fg-muted);
-    min-width: 36px;
-    text-align: center;
 }
-.dj-deck-scrub-slider {
-    flex: 1;
+.dj-deck-loading-text {
+    color: var(--color-fg-subtle);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10px;
+}
+.dj-deck-pos-text {
+    color: var(--color-fg);
 }
 </style>
