@@ -574,9 +574,8 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         Action::DjLoad { deck, path } => {
             let mixer = context.mixer()?;
             let deck_handle = mixer.handle().deck(deck.into()).clone();
-            // Echo metadata back immediately (title/artist read from tag,
-            // not the audio decoder), then kick off decode on a blocking
-            // pool thread so the rest of the UI keeps moving.
+            // Read tags first → echo title/artists immediately so the
+            // deck UI stops looking empty before decode finishes.
             let tag = Tag::load_file(&path, false)?;
             let title = tag.tag().get_field(Field::Title)
                 .and_then(|i| i.first().map(String::from));
@@ -588,16 +587,44 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 "title": title,
                 "artists": artists,
             })).await.ok();
+
+            // Decode + analyze on the blocking pool — analyze depends on
+            // the decoded buffer, so they run sequentially here. ~3s
+            // decode + ~2s analyze for a 5-min track = ~5s total before
+            // the deck plays. Track is playable as soon as we hand it
+            // to the mixer (after decode); the analyze just adds beat
+            // info that gets pushed in a follow-up djAnalyzed event.
             let path_owned = path.clone();
             let decoded = tokio::task::spawn_blocking(move || {
                 digtrax_deck::decode_file(&path_owned)
             }).await??;
             let duration_ms = decoded.duration_ms();
+            // Clone Arc<Vec<f32>> via a fresh DecodedAudio handle so
+            // the analyzer can keep working after we hand the track to
+            // the deck. Both share the same sample buffer (Arc'd).
+            let decoded_for_analysis = decoded.clone();
             deck_handle.load(decoded)?;
             send_socket(websocket, json!({
                 "action": "djLoaded",
                 "deck": deck,
                 "duration": duration_ms,
+            })).await.ok();
+
+            // Beat tracking. 10 bars/sec spectrum density = 100 ms per
+            // bin; for a 5-min track that's 3000 bins (300 visible at
+            // 30s zoom). Plenty of resolution.
+            let analysis = tokio::task::spawn_blocking(move || {
+                digtrax_deck::analyze(&decoded_for_analysis, 10.0)
+            }).await??;
+            send_socket(websocket, json!({
+                "action": "djAnalyzed",
+                "deck": deck,
+                "bpm": analysis.bpm,
+                "firstBeatMs": analysis.first_beat_ms,
+                "confidence": analysis.confidence,
+                "barsPerSecond": 10.0,
+                "spectrumBars": analysis.spectrum_bars,
+                "beatsMs": analysis.beats_ms,
             })).await.ok();
         },
         Action::DjPlay { deck } => {

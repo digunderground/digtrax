@@ -26,15 +26,34 @@ export interface DeckState {
     artists: string[];
     /// Track length in ms, set by backend after decode finishes.
     duration: number;
-    /// Current playhead in ms. Phase 1g will populate this from
-    /// audio-thread atomics over the WS pusher; Phase 1 ships it as 0.
+    /// Current playhead in ms. Backend pushes ~30 Hz from the audio
+    /// thread; the local ticker doesn't need to estimate.
     position: number;
     /// True while audio is being produced (backend confirms via push).
     playing: boolean;
-    /// True while a decode is in flight. djLoaded clears it.
+    /// True while decode is in flight. djLoaded clears it.
     loading: boolean;
+    /// True while beat analysis is running. djAnalyzed clears it.
+    analyzing: boolean;
     /// 0..1 fader position. Sent to backend via `djVolume`.
     userVolume: number;
+    /// Detected BPM (Phase 2a — kick tracker). 0 = analysis hasn't
+    /// completed yet or failed.
+    bpm: number;
+    /// Position of beat 1 in ms (file-time). 0 = unknown / pre-analysis.
+    firstBeat: number;
+    /// 0..1 confidence score. Low = the kick tracker found a weak /
+    /// inconsistent pulse and the user shouldn't trust the BPM display.
+    bpmConfidence: number;
+    /// Per-bar [low, mid, high] spectrum amplitude triplets (the deck's
+    /// scrolling RGB waveform draws these). Sampled at `barsPerSec`
+    /// per second of audio.
+    spectrum: number[][];
+    /// Spectrum density (bars per second of audio).
+    spectrumBarsPerSec: number;
+    /// Every detected beat in ms (file-time). Length ≈ duration*bpm/60.
+    /// Drives the yellow beat-grid markers on the deck waveform.
+    beats: number[];
 }
 
 function emptyDeck(id: DeckId): DeckState {
@@ -47,7 +66,14 @@ function emptyDeck(id: DeckId): DeckState {
         position: 0,
         playing: false,
         loading: false,
+        analyzing: false,
         userVolume: 0.7,
+        bpm: 0,
+        firstBeat: 0,
+        bpmConfidence: 0,
+        spectrum: [],
+        spectrumBarsPerSec: 10,
+        beats: [],
     };
 }
 
@@ -156,10 +182,29 @@ export function onDjEvent(json: any) {
             const slot = refOf(id);
             slot.duration = Number(json.duration) || 0;
             slot.loading = false;
+            // Beat analysis runs immediately after Load on the backend;
+            // mark this deck as analyzing so the UI can show a spinner.
+            slot.analyzing = true;
+            return;
+        }
+        case 'djAnalyzed': {
+            if (!id) return;
+            const slot = refOf(id);
+            slot.bpm = Number(json.bpm) || 0;
+            slot.firstBeat = Number(json.firstBeatMs) || 0;
+            slot.bpmConfidence = Number(json.confidence) || 0;
+            slot.spectrumBarsPerSec = Number(json.barsPerSecond) || 10;
+            slot.spectrum = Array.isArray(json.spectrumBars)
+                ? json.spectrumBars.map((b: any) =>
+                    Array.isArray(b) ? [Number(b[0])||0, Number(b[1])||0, Number(b[2])||0] : [0, 0, 0])
+                : [];
+            slot.beats = Array.isArray(json.beatsMs)
+                ? json.beatsMs.map((b: any) => Number(b) || 0)
+                : [];
+            slot.analyzing = false;
             return;
         }
         case 'djPosition': {
-            // Phase 1g — backend pushes ~30 Hz from the audio thread.
             if (!id) return;
             const slot = refOf(id);
             const pos = Number(json.pos);

@@ -28,11 +28,18 @@
             <div class='dj-deck-meta'>
                 <div class='dj-deck-title' :title='state.title'>
                     {{ state.title || filename(state.path) }}
-                    <span v-if='state.loading' class='dj-deck-loading'>analyzing…</span>
+                    <span v-if='state.loading' class='dj-deck-loading'>decoding…</span>
+                    <span v-else-if='state.analyzing' class='dj-deck-loading'>analyzing…</span>
                 </div>
                 <div class='dj-deck-artists'>{{ state.artists.join(', ') || '—' }}</div>
             </div>
+            <div v-if='state.bpm > 0' class='dj-deck-bpm' :title='"Detected " + state.bpm.toFixed(2) + " BPM"'>
+                <span class='dj-deck-bpm-value'>{{ state.bpm.toFixed(1) }}</span>
+                <span class='dj-deck-bpm-unit'>BPM</span>
+            </div>
         </div>
+
+        <DjWaveform :id='id' class='dj-deck-wave' />
 
         <div class='dj-deck-transport'>
             <q-btn
@@ -58,17 +65,7 @@
                     class='dj-deck-volume-slider'
                 />
             </div>
-        </div>
-
-        <div class='dj-deck-scrub'>
-            <span class='dj-deck-time'>{{ formatTime(state.position) }}</span>
-            <q-slider
-                :model-value='scrubValue'
-                @update:model-value='onScrub'
-                :min='0' :max='state.duration || 1' :step='100'
-                class='dj-deck-scrub-slider'
-            />
-            <span class='dj-deck-time'>{{ formatTime(state.duration) }}</span>
+            <span class='dj-deck-time'>{{ formatTime(state.position) }} / {{ formatTime(state.duration) }}</span>
         </div>
     </template>
 </div>
@@ -76,9 +73,10 @@
 
 <script lang='ts' setup>
 import { computed, PropType, ref } from 'vue';
+import DjWaveform from './DjWaveform.vue';
 import {
     DeckId, djState,
-    loadDeck, playDeck, pauseDeck, stopDeck, seekDeck, setDeckVolume,
+    loadDeck, playDeck, pauseDeck, stopDeck, setDeckVolume,
 } from '../../scripts/dj';
 
 const props = defineProps({
@@ -130,11 +128,6 @@ function onStop() { stopDeck(props.id); }
 function onVolume(v: number | null) {
     setDeckVolume(props.id, typeof v === 'number' ? v : 0);
 }
-function onScrub(v: number | null) {
-    if (typeof v === 'number') seekDeck(props.id, v);
-}
-
-const scrubValue = computed(() => state.value.position || 0);
 
 function filename(p?: string): string {
     if (!p) return '';
@@ -157,7 +150,7 @@ function formatTime(ms: number): string {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm, 6px);
     background: rgba(255, 255, 255, 0.02);
-    min-height: 130px;
+    min-height: 200px; /* taller now that the deck owns the waveform */
 }
 .dj-deck--drag {
     border-color: var(--color-accent);
@@ -204,6 +197,35 @@ function formatTime(ms: number): string {
 .dj-deck-meta {
     flex: 1;
     min-width: 0;
+}
+.dj-deck-bpm {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: var(--radius-full, 9999px);
+    border: 1px solid var(--color-accent);
+    background: rgba(0, 210, 191, 0.10);
+    box-shadow: 0 0 6px rgba(0, 210, 191, 0.18);
+    flex-shrink: 0;
+}
+.dj-deck-bpm-value {
+    font-family: var(--font-mono);
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--color-accent);
+}
+.dj-deck-bpm-unit {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--color-accent);
+    opacity: 0.7;
+}
+.dj-deck-wave {
+    flex: 1;
+    min-height: 0;
 }
 .dj-deck-title {
     font-weight: 700;

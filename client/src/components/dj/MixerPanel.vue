@@ -44,7 +44,7 @@ function onMaster(v: number | null) {
     padding: 10px 14px;
     background: var(--color-bg-elevated);
     border-top: 1px solid var(--color-border);
-    min-height: 160px;
+    min-height: 240px;
     box-sizing: border-box;
 }
 .dj-mixer-deck { min-width: 0; }

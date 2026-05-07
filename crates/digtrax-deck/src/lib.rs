@@ -36,10 +36,12 @@
 //! Phase 2+ extends the in-callback chain (rubato rate change, beats,
 //! sync, EQ) without changing this public API.
 
+mod beats;
 mod decode;
 mod engine;
 mod master;
 
+pub use beats::{analyze, BeatAnalysis};
 pub use decode::{decode_file, DecodedAudio};
 pub use engine::{DeckHandle, DeckSnapshot};
 pub use master::{MasterMixer, MixerHandle};
