@@ -62,7 +62,10 @@
             </button>
         </div>
 
-        <DjWaveform :id='id' class='dj-deck-wave' />
+        <div class='dj-deck-wave-row'>
+            <DjEqStrip :id='id' class='dj-deck-eq' />
+            <DjWaveform :id='id' class='dj-deck-wave' />
+        </div>
 
         <div class='dj-deck-transport'>
             <q-btn
@@ -117,6 +120,7 @@
 <script lang='ts' setup>
 import { computed, PropType, ref } from 'vue';
 import DjWaveform from './DjWaveform.vue';
+import DjEqStrip from './DjEqStrip.vue';
 import {
     DeckId, djState,
     loadDeck, playDeck, pauseDeck, stopDeck, setDeckVolume, setDeckRate,
@@ -321,9 +325,19 @@ function formatTime(ms: number): string {
     color: var(--color-accent);
     opacity: 0.7;
 }
+.dj-deck-wave-row {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    gap: 6px;
+}
+.dj-deck-eq {
+    flex-shrink: 0;
+}
 .dj-deck-wave {
     flex: 1;
     min-height: 0;
+    min-width: 0;
 }
 
 .dj-deck-sync-row {

@@ -65,6 +65,12 @@ export interface DeckState {
     /// True if SYNC is engaged on this deck. Means: "if a different
     /// deck is the leader and this deck has analyzed beats, follow it."
     syncOn: boolean;
+    /// 3-band EQ. Each ∈ [0, 2], 1 = unity, 0 = kill, 2 = +6 dB.
+    eqLow: number;
+    eqMid: number;
+    eqHigh: number;
+    /// DJ filter knob, [-1, 1]. 0 = bypass, -1 = full LPF, +1 = full HPF.
+    filter: number;
 }
 
 function emptyDeck(id: DeckId): DeckState {
@@ -88,6 +94,10 @@ function emptyDeck(id: DeckId): DeckState {
         beats: [],
         isLeader: false,
         syncOn: false,
+        eqLow: 1.0,
+        eqMid: 1.0,
+        eqHigh: 1.0,
+        filter: 0.0,
     };
 }
 
@@ -190,6 +200,27 @@ export function setLeader(deck: DeckId | null) {
 /// analyzed beats. The 33Hz djPosition push reports the actual state.
 export function setSync(deck: DeckId, on: boolean) {
     get1t().send('djSync', { deck, on });
+}
+
+export type EqBand = 'low' | 'mid' | 'high';
+
+/// Set one EQ band per deck. `value` ∈ [0, 2] where 1 = unity, 0 = kill,
+/// 2 = +6 dB. Optimistic state update so the knob feels responsive.
+export function setEq(deck: DeckId, band: EqBand, value: number) {
+    const v = Math.max(0, Math.min(2, value));
+    const slot = refOf(deck);
+    if (band === 'low') slot.eqLow = v;
+    else if (band === 'mid') slot.eqMid = v;
+    else slot.eqHigh = v;
+    get1t().send('djEq', { deck, band, value: v });
+}
+
+/// Set the DJ filter knob. `value` ∈ [-1, 1]. 0 = bypass, -1 = full
+/// LPF, +1 = full HPF.
+export function setFilter(deck: DeckId, value: number) {
+    const v = Math.max(-1, Math.min(1, value));
+    refOf(deck).filter = v;
+    get1t().send('djFilter', { deck, value: v });
 }
 
 // ─── Inbound (backend → frontend) ─────────────────────────────────────

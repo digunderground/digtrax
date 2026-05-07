@@ -28,6 +28,8 @@ use anyhow::{anyhow, Error};
 use crossbeam_channel::{Receiver, Sender, TrySendError};
 
 use crate::decode::DecodedAudio;
+use crate::eq::EqChain;
+use crate::filter::FilterChain;
 
 /// Snapshot of a deck's user-visible state — what we push back to the
 /// frontend over WS.
@@ -48,6 +50,10 @@ pub struct DeckSnapshot {
     /// True if a track is loaded.
     pub loaded: bool,
 }
+
+/// 3-band EQ band selector for `DeckHandle::set_eq`.
+#[derive(Debug, Clone, Copy)]
+pub enum EqBand { Low, Mid, High }
 
 /// Non-RT command sent from a `DeckHandle` to the audio thread.
 pub(crate) enum DeckCommand {
@@ -85,6 +91,12 @@ pub(crate) struct DeckEngine {
     /// File-native BPM from the analyzer. 0 = analysis not done.
     /// Used by the sync engine to compute the base rate ratio.
     file_bpm: f32,
+    /// 3-band EQ chain (state + cached coefficients). Recomputed only
+    /// when a knob actually moves; per-frame cost is one biquad-tick
+    /// per band per channel.
+    eq: EqChain,
+    /// DJ filter chain (single-knob LPF↔bypass↔HPF sweep).
+    filter: FilterChain,
     /// Read-side handle — atomics this engine writes for outside readers.
     handle: DeckHandle,
 }
@@ -110,6 +122,15 @@ pub struct DeckHandle {
     duration_frames: Arc<AtomicU64>,
     /// Source sample rate (set by Load). 0 = no track loaded.
     source_rate: Arc<AtomicU32>,
+    /// 3-band EQ knobs, each f32 bits. Range [0.0, 2.0]. 1.0 = unity,
+    /// 0.0 = full kill, 2.0 = +6 dB. Frontend's HML knob trio writes
+    /// these via `set_eq()`.
+    eq_low: Arc<AtomicU32>,
+    eq_mid: Arc<AtomicU32>,
+    eq_high: Arc<AtomicU32>,
+    /// DJ-style filter knob, f32 bits, range [-1.0, 1.0].
+    /// 0 = bypass, negative = LPF sweep, positive = HPF sweep.
+    filter_knob: Arc<AtomicU32>,
 }
 
 impl DeckHandle {
@@ -178,6 +199,24 @@ impl DeckHandle {
         let _ = self.cmd_tx.try_send(DeckCommand::Unload);
     }
 
+    /// Set one EQ band. `band` selects low/mid/high; `value` ∈ [0, 2]
+    /// where 1 = unity, 0 = kill, 2 = +6 dB.
+    pub fn set_eq(&self, band: EqBand, value: f32) {
+        let v = value.clamp(0.0, 2.0);
+        let target = match band {
+            EqBand::Low => &self.eq_low,
+            EqBand::Mid => &self.eq_mid,
+            EqBand::High => &self.eq_high,
+        };
+        target.store(v.to_bits(), Ordering::Release);
+    }
+
+    /// Set the filter knob. `value` ∈ [-1, 1]. 0 = bypass.
+    pub fn set_filter(&self, value: f32) {
+        let v = value.clamp(-1.0, 1.0);
+        self.filter_knob.store(v.to_bits(), Ordering::Release);
+    }
+
     /// Provide the audio thread with the analyzer's beat sequence.
     /// `beats_ms` are in milliseconds (file-time); we convert to source
     /// frames before sending so the audio thread can binary-search
@@ -224,6 +263,10 @@ impl DeckEngine {
         let position_frames = Arc::new(AtomicU64::new(0));
         let duration_frames = Arc::new(AtomicU64::new(0));
         let source_rate = Arc::new(AtomicU32::new(0));
+        let eq_low = Arc::new(AtomicU32::new(1.0_f32.to_bits()));
+        let eq_mid = Arc::new(AtomicU32::new(1.0_f32.to_bits()));
+        let eq_high = Arc::new(AtomicU32::new(1.0_f32.to_bits()));
+        let filter_knob = Arc::new(AtomicU32::new(0.0_f32.to_bits()));
         let handle = DeckHandle {
             cmd_tx,
             volume,
@@ -232,6 +275,10 @@ impl DeckEngine {
             position_frames,
             duration_frames,
             source_rate,
+            eq_low,
+            eq_mid,
+            eq_high,
+            filter_knob,
         };
         let engine = DeckEngine {
             audio: None,
@@ -241,6 +288,8 @@ impl DeckEngine {
             cmd_rx,
             beats_frames: Vec::new(),
             file_bpm: 0.0,
+            eq: EqChain::new(output_rate),
+            filter: FilterChain::new(output_rate),
             handle: handle.clone(),
         };
         (engine, handle)
@@ -364,6 +413,10 @@ impl DeckEngine {
         }
         let volume = f32::from_bits(self.handle.volume.load(Ordering::Acquire));
         let user_rate = f32::from_bits(self.handle.rate.load(Ordering::Acquire)) as f64;
+        let eq_low = f32::from_bits(self.handle.eq_low.load(Ordering::Acquire));
+        let eq_mid = f32::from_bits(self.handle.eq_mid.load(Ordering::Acquire));
+        let eq_high = f32::from_bits(self.handle.eq_high.load(Ordering::Acquire));
+        let filter_knob = f32::from_bits(self.handle.filter_knob.load(Ordering::Acquire));
         // Phase 2: linear-interpolated SRC × user-rate multiplier.
         // `audio.sample_rate / output_rate` handles 44.1 → 48 kHz format
         // conversion; multiplying by `user_rate` (1.0 = native) speeds up
@@ -390,14 +443,17 @@ impl DeckEngine {
             let i0 = idx * 2;
             let l = samples[i0] * (1.0 - frac) + samples[i0 + 2] * frac;
             let r = samples[i0 + 1] * (1.0 - frac) + samples[i0 + 3] * frac;
+            // DSP chain: SRC → EQ → filter → volume → output.
+            let (l_eq, r_eq) = self.eq.process_frame(l, r, eq_low, eq_mid, eq_high);
+            let (l_dsp, r_dsp) = self.filter.process_frame(l_eq, r_eq, filter_knob);
             // Write to all output channels — channel 0 = L, 1 = R, 2+ = silence.
             let base = i * n_chan;
             if n_chan == 1 {
                 // Mono device: sum L+R at -3 dB.
-                out[base] = (l + r) * 0.5 * volume;
+                out[base] = (l_dsp + r_dsp) * 0.5 * volume;
             } else {
-                out[base] = l * volume;
-                out[base + 1] = r * volume;
+                out[base] = l_dsp * volume;
+                out[base + 1] = r_dsp * volume;
                 // any extra channels stay zero (already cleared above)
             }
             self.position_frames += rate_ratio;

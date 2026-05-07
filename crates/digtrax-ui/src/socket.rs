@@ -32,7 +32,7 @@ use digtrax_autotag::{Tagger, AudioFileInfoImpl, TaggerConfigExt, AUTOTAGGER_PLA
 use digtrax_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use digtrax_platforms::spotify::Spotify;
 use digtrax_player::{AudioSources, AudioPlayer};
-use digtrax_deck::{DeckId, MasterMixer};
+use digtrax_deck::{DeckId, EqBand, MasterMixer};
 use digtrax_shared::{Settings, COMMIT};
 use digtrax_playlist::{UIPlaylist, PLAYLIST_EXTENSIONS, get_files_from_playlist_file};
 
@@ -100,6 +100,13 @@ enum Action {
     /// leader, the audio thread's PI controller corrects this deck's
     /// rate every buffer to lock to the leader's beat phase.
     DjSync { deck: WireDeckId, on: bool },
+    /// 3-band EQ per deck. `band` ∈ "low"|"mid"|"high"; `value` ∈
+    /// [0, 2] (1 = unity, 0 = kill, 2 = +6 dB).
+    #[serde(rename_all = "camelCase")]
+    DjEq { deck: WireDeckId, band: WireEqBand, value: f32 },
+    /// DJ-style filter knob. `value` ∈ [-1, 1]; 0 = bypass, -1 = full
+    /// LPF, +1 = full HPF.
+    DjFilter { deck: WireDeckId, value: f32 },
 
     QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool>, separators: TagSeparators, limit: Option<bool> },
     QuickTagSave { path: PathBuf, changes: TagChanges },
@@ -166,6 +173,21 @@ impl From<WireDeckId> for DeckId {
         match w {
             WireDeckId::A => DeckId::A,
             WireDeckId::B => DeckId::B,
+        }
+    }
+}
+
+/// Wire-format EQ band selector.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum WireEqBand { Low, Mid, High }
+
+impl From<WireEqBand> for EqBand {
+    fn from(w: WireEqBand) -> Self {
+        match w {
+            WireEqBand::Low => EqBand::Low,
+            WireEqBand::Mid => EqBand::Mid,
+            WireEqBand::High => EqBand::High,
         }
     }
 }
@@ -681,6 +703,12 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         },
         Action::DjSync { deck, on } => {
             context.mixer()?.handle().sync().set_sync(deck.into(), on);
+        },
+        Action::DjEq { deck, band, value } => {
+            context.mixer()?.handle().deck(deck.into()).set_eq(band.into(), value);
+        },
+        Action::DjFilter { deck, value } => {
+            context.mixer()?.handle().deck(deck.into()).set_filter(value);
         },
 
         // Load quicktag files or playlist

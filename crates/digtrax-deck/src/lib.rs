@@ -39,12 +39,14 @@
 mod beats;
 mod decode;
 mod engine;
+mod eq;
+mod filter;
 mod master;
 mod sync;
 
 pub use beats::{analyze, BeatAnalysis};
 pub use decode::{decode_file, DecodedAudio};
-pub use engine::{DeckHandle, DeckSnapshot};
+pub use engine::{DeckHandle, DeckSnapshot, EqBand};
 pub use master::{MasterMixer, MixerHandle};
 pub use sync::SyncHandle;
 
