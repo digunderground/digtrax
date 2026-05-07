@@ -74,18 +74,24 @@
                 @click='toggleKeyLock'
                 :title='keyLockTitle'
             >KEY</button>
-            <div class='dj-deck-jump' :class='{ "dj-deck-jump--disabled": !state.beats.length }'>
-                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(-4)' title='-4 beats'>⟪4</button>
-                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(-1)' title='-1 beat'>⟨1</button>
-                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(1)'  title='+1 beat'>1⟩</button>
-                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(4)'  title='+4 beats'>4⟫</button>
+            <!-- Beat-jump (transport): quantized seek ±1/±4 beats, like
+                 a Pioneer DDJ's BEAT JUMP pad row. Same pill base as
+                 SYNC/MASTER/KEY but never sticky-on. -->
+            <div class='dj-deck-jumpgroup' :class='{ "dj-deck-jumpgroup--disabled": !state.beats.length }'>
+                <button class='dj-deck-pill dj-deck-pill--jump' :disabled='!state.beats.length' @click='onJump(-4)' title='Jump -4 beats'>«&nbsp;4</button>
+                <button class='dj-deck-pill dj-deck-pill--jump' :disabled='!state.beats.length' @click='onJump(-1)' title='Jump -1 beat'>‹&nbsp;1</button>
+                <button class='dj-deck-pill dj-deck-pill--jump' :disabled='!state.beats.length' @click='onJump(1)'  title='Jump +1 beat'>1&nbsp;›</button>
+                <button class='dj-deck-pill dj-deck-pill--jump' :disabled='!state.beats.length' @click='onJump(4)'  title='Jump +4 beats'>4&nbsp;»</button>
             </div>
-            <!-- Beat-grid translate (Mixxx beats_translate_*). Lets the
-                 user fix kick-vs-snare (½) or nudge a few ms either way. -->
-            <div class='dj-deck-translate' :class='{ "dj-deck-translate--disabled": !state.beats.length }' :title='translateTitle'>
-                <button class='dj-deck-translate-btn' :disabled='!state.beats.length' @click='onTranslate(-10)' title='Nudge grid 10 ms earlier'>‹</button>
-                <button class='dj-deck-translate-btn dj-deck-translate-btn--half' :disabled='!state.beats.length' @click='onHalfBeat' title='Shift grid by ½ beat (kick ↔ snare)'>½</button>
-                <button class='dj-deck-translate-btn' :disabled='!state.beats.length' @click='onTranslate(10)' title='Nudge grid 10 ms later'>›</button>
+            <!-- Beat-grid translate (Mixxx `beats_translate_*`): nudges
+                 the analyzed grid, NOT the playhead. Distinct amber
+                 accent so it's visually clear these don't move the
+                 track — they fix the grid alignment. -->
+            <div class='dj-deck-gridgroup' :class='{ "dj-deck-gridgroup--disabled": !state.beats.length }' :title='translateTitle'>
+                <span class='dj-deck-gridgroup-label'>GRID</span>
+                <button class='dj-deck-pill dj-deck-pill--grid' :disabled='!state.beats.length' @click='onTranslate(-10)' title='Nudge grid 10 ms earlier'>−10</button>
+                <button class='dj-deck-pill dj-deck-pill--grid dj-deck-pill--grid-half' :disabled='!state.beats.length' @click='onHalfBeat' title='Shift grid by ½ beat (kick ↔ snare)'>½</button>
+                <button class='dj-deck-pill dj-deck-pill--grid' :disabled='!state.beats.length' @click='onTranslate(10)' title='Nudge grid 10 ms later'>+10</button>
             </div>
         </div>
 
@@ -445,67 +451,61 @@ function formatTime(ms: number): string {
     color: #002030 !important;
 }
 
-.dj-deck-jump {
+/* Beat-jump pad row — Pioneer DDJ-style BEAT JUMP cluster.
+   Pushed to the right of the SYNC/MASTER/KEY group. Each pill uses
+   the shared base style; distinct accent is "neutral" (no on-state)
+   since these are momentary actions. */
+.dj-deck-jumpgroup {
     display: inline-flex;
-    gap: 2px;
+    gap: 4px;
     margin-left: auto;
 }
-.dj-deck-jump--disabled { opacity: 0.4; }
-.dj-deck-jump-btn {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: var(--radius-xs, 3px);
-    border: 1px solid var(--color-border);
-    background: transparent;
-    color: var(--color-fg-muted);
-    cursor: pointer;
+.dj-deck-jumpgroup--disabled { opacity: 0.4; pointer-events: none; }
+.dj-deck-pill--jump {
+    padding: 0 8px;
+    min-width: 36px;
+    justify-content: center;
 }
-.dj-deck-jump-btn:disabled { cursor: not-allowed; }
-.dj-deck-jump-btn:not(:disabled):hover {
-    color: var(--color-fg);
+.dj-deck-pill--jump:not(:disabled):hover {
+    color: #001f1c;
     border-color: var(--color-accent);
-    background: rgba(0, 210, 191, 0.08);
+    background: var(--color-accent);
 }
 
-/* Beat-grid translate (Mixxx beats_translate_* family). Subtle
-   amber tint distinguishes them from beat-jump (which moves the
-   playhead) since these move the GRID instead. */
-.dj-deck-translate {
+/* Beat-GRID translate cluster (Mixxx `beats_translate_*`). These
+   move the analyzed grid, NOT the playhead — so we visually
+   distinguish them from beat-jump with an amber accent and a
+   "GRID" caption that matches Mixxx's section labelling. */
+.dj-deck-gridgroup {
     display: inline-flex;
-    gap: 2px;
-    margin-left: 4px;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding-left: 8px;
+    border-left: 1px solid var(--color-border);
 }
-.dj-deck-translate--disabled { opacity: 0.4; }
-.dj-deck-translate-btn {
+.dj-deck-gridgroup--disabled { opacity: 0.4; pointer-events: none; }
+.dj-deck-gridgroup-label {
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
-    padding: 2px 6px;
-    min-width: 18px;
-    border-radius: var(--radius-xs, 3px);
-    border: 1px solid var(--color-border);
-    background: transparent;
+    letter-spacing: 0.10em;
     color: var(--color-fg-muted);
-    cursor: pointer;
-    transition: all var(--duration-fast, 120ms) ease;
+    margin-right: 2px;
 }
-.dj-deck-translate-btn:disabled { cursor: not-allowed; }
-.dj-deck-translate-btn:not(:disabled):hover {
+.dj-deck-pill--grid {
+    padding: 0 8px;
+    min-width: 32px;
+    justify-content: center;
+}
+.dj-deck-pill--grid:not(:disabled):hover {
     color: #1a0e00;
     border-color: #ffc832;
     background: #ffc832;
 }
-.dj-deck-translate-btn--half {
-    font-weight: 800;
+.dj-deck-pill--grid-half {
     color: #ffc832;
     border-color: rgba(255, 200, 50, 0.5);
-}
-.dj-deck-translate-btn--half:not(:disabled):hover {
-    color: #1a0e00;
-    background: #ffc832;
-    border-color: #ffc832;
 }
 
 .dj-deck-wave-row {

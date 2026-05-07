@@ -124,9 +124,10 @@ export const djState = reactive({
     /// Shared zoom for the main scrolling waveform. Visible window
     /// duration in seconds — both decks render at the same zoom so
     /// the user can compare them at the same scale (Mixxx convention).
-    /// Mouse-wheel on the waveform changes this; default 30s = ~64
-    /// beats visible at 128 BPM (a clean phrase).
-    zoomSeconds: 30,
+    /// Mouse-wheel on the waveform changes this; default 12s ≈ 25
+    /// beats visible at 128 BPM (one phrase + a bit of context, the
+    /// sweet spot for most material).
+    zoomSeconds: 12,
 });
 
 /// Zoom levels that match Mixxx's main-waveform stops. Each step
@@ -293,15 +294,18 @@ export function beatJump(deck: DeckId, beats: number) {
 /// thread also shifts its own copy of the array, so the sync engine
 /// reads the corrected positions for beat-distance math.
 export function translateBeats(deck: DeckId, offsetMs: number) {
+    // Backend's `Action::DjBeatsTranslate.offset_ms` is i64 — serde
+    // rejects fractional values like 232.199 (the half-beat at 129
+    // BPM). Round once here so callers can pass the raw computation.
+    const roundedMs = Math.round(offsetMs);
+    if (roundedMs === 0) return;
     const slot = refOf(deck);
     if (slot.beats.length === 0) return;
     slot.beats = slot.beats
-        .map(b => b + offsetMs)
+        .map(b => b + roundedMs)
         .filter(b => b >= 0 && b < slot.duration);
-    if (offsetMs !== 0) {
-        slot.firstBeat = slot.beats[0] ?? 0;
-    }
-    get1t().send('djBeatsTranslate', { deck, offsetMs });
+    slot.firstBeat = slot.beats[0] ?? 0;
+    get1t().send('djBeatsTranslate', { deck, offsetMs: roundedMs });
 }
 
 /// Set deck pre-fader gain (separate from the channel fader / volume).

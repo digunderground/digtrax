@@ -122,12 +122,22 @@ fn build_rubberband() {
     // (Xcode 16+) and recent stdlibs keep `size_t` strictly in `std::`,
     // breaking RubberBand's bare `size_t` usage. The compat header
     // pulls in <cstddef>/<cstdint> and aliases the std types globally.
-    let compat = "vendor/rubberband_compat.h";
+    //
+    // We pass an ABSOLUTE path because `cc::Build` runs the compiler
+    // from `OUT_DIR` (target/.../build/...), not the crate root. A
+    // relative `vendor/...` path is resolved from cl.exe's CWD on
+    // Windows (= OUT_DIR) where the file doesn't exist — that's the
+    // C1083 we saw on the v1.8.0-beta.7 CI build. clang's `-include`
+    // also resolves relative to the compiler's CWD, so the absolute
+    // path is correct on every platform.
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
+        .expect("CARGO_MANIFEST_DIR must be set by cargo");
+    let compat_abs = format!("{}/vendor/rubberband_compat.h", manifest_dir);
     if cfg!(target_env = "msvc") {
-        rb.flag(format!("/FI{}", compat));
+        rb.flag(format!("/FI{}", compat_abs));
     } else {
         rb.flag("-include");
-        rb.flag(compat);
+        rb.flag(&compat_abs);
     }
 
     // Source files. The list mirrors meson.build's `rubberband_src`
