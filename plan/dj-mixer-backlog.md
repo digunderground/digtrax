@@ -3,6 +3,29 @@
 Features deferred from the initial DJ Mixer ship (`feature/dj-mixer`).
 Not yet committed to v2; this is a parking lot, not a roadmap.
 
+## v1 ship state
+
+What landed in `feature/dj-mixer`:
+- New `crates/digtrax-deck/` (cpal-based, no Qt, MIT/Apache-2.0)
+- 2 decks with drag-drop from Quick Tag
+- Symphonia decode → in-memory f32 stereo
+- Per-deck rate slider (pitch-coupled, vinyl-style)
+- Equal-power crossfader, master gain
+- Kick-focused beat tracker (30–150 Hz envelope + ACF + Gaussian
+  prior at 128 BPM, 7/7 synthetic-click tests pass at ±0.5 BPM)
+- Scrolling spectrum waveform (RGB low/mid/high) with beat-grid
+  markers (yellow every 4, cyan every 16) drawn from the actual
+  detected beat sequence
+- Closed-loop sync engine (PI controller in audio callback,
+  Mixxx-style; gain 0.7, ±2% rate cap, train-wreck threshold 20%
+  of a beat)
+- 3-band EQ (low-shelf 250 Hz, mid peaking 1.5 kHz, high-shelf
+  5 kHz; cookbook biquads, kill at 0.0)
+- DJ filter knob (single sweep through LPF → bypass → HPF, 100 Hz
+  to 12 kHz log range)
+- Beat jump (-4, -1, +1, +4 beats, quantized to bracket beat)
+- DJ Mode toggle in PlayerBar (preview path untouched when off)
+
 ## Audio
 - **Hot cues** (8 per deck, with color-coded states like Mixxx). v1 ships zero
   cue points; the engine has no cue infrastructure at all yet.
@@ -34,6 +57,12 @@ Not yet committed to v2; this is a parking lot, not a roadmap.
   Mixxx-grade option if real-world EDM tracks fail Phase 2 verification.
 - **Quantize-on-seek**. When grid is known, snap user-initiated seeks to
   the nearest beat (Mixxx `quantize` flag).
+
+## Metering (deferred from Phase 5)
+- **Per-deck VU meter** (peak + RMS) — visible beside each deck.
+  Audio thread already touches the buffer; cheap to compute. Push
+  alongside djPosition at 33 Hz.
+- **Master VU meter** in the center column (post-crossfader).
 
 ## UX
 - **Per-deck rate slider with center detent + nudge buttons** (we ship the
