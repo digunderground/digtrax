@@ -131,6 +131,15 @@ pub(crate) struct DeckEngine {
     /// `set_time_ratio` when this changes, so steady-state buffers
     /// don't pay the cost of an FFI call every callback.
     last_stretch_ratio: f64,
+    /// "Effective" rate at which the audio currently buffered inside
+    /// the stretcher was pushed. Mirrors Mixxx's `m_effectiveRate`
+    /// (see `enginebufferscalerubberband.cpp:315,322`). When we pull
+    /// output, we advance `position_frames` at THIS rate (the rate
+    /// the buffered audio was originally produced at). When we push
+    /// new input we sample the latest user_rate into here, so the
+    /// next pull reflects the new rate. This keeps audible-position
+    /// accounting consistent across PI rate changes mid-buffer.
+    effective_rate: f64,
     /// Source-frame read head used by the keylock branch. Distinct
     /// from `position_frames` because the stretcher buffers ~50ms of
     /// input internally — we push ahead of the audible position. The
@@ -380,6 +389,7 @@ impl DeckEngine {
             stretch_max_chunk,
             last_key_lock_active: false,
             last_stretch_ratio: 1.0,
+            effective_rate: 1.0,
             read_head_frames: 0.0,
             handle: handle.clone(),
         };
@@ -607,24 +617,31 @@ impl DeckEngine {
         let n_out_frames = out.len() / n_chan;
         if n_out_frames == 0 { return; }
 
-        // Mixxx-style guard: at extreme rates RubberBand R2 sounds
-        // bad enough that Mixxx force-disables keylock. We follow the
-        // same thresholds (`enginebuffer.cpp:951–966`). At rate=1.0
-        // the stretcher would just be added latency for no benefit.
+        // Match Mixxx: always run through the stretcher when keylock
+        // is on and the rate is in a reasonable range. We DON'T bypass
+        // at exactly rate=1.0 because in sync mode the PI controller
+        // oscillates around 1.0 with tiny corrections — flipping
+        // between bypass and stretch every few buffers causes the
+        // stretcher to reset constantly, producing audible gaps and
+        // phase jitter that the PI then chases (visible as an
+        // erratic tempo slider). Keylock+rate=1.0 is just a constant-
+        // latency pass-through, identical on both decks. The extreme
+        // thresholds match Mixxx's safeguards in
+        // `enginebuffer.cpp:951–966` (R2 sounds bad past these).
         let stretch_active = key_lock_on
             && user_rate > 0.10
-            && user_rate < 1.90
-            && (user_rate - 1.0).abs() > 1e-4;
+            && user_rate < 1.90;
 
-        // Detect OFF→ON edge (or rate-jump out of the bypass window
-        // back into stretch range). In either case we reset the
-        // stretcher and re-anchor the keylock read head to the
-        // current audible position so the first push reads the right
-        // source frames.
+        // Detect OFF→ON edge. Reset the stretcher and re-anchor the
+        // keylock read head to the audible position so the first
+        // push reads the right source frames.
         if stretch_active && !self.last_key_lock_active {
             self.stretcher.reset();
             self.last_stretch_ratio = -1.0;
             self.read_head_frames = self.position_frames;
+            // No buffered audio yet, so effective_rate doesn't matter
+            // until the first push, but seed it sensibly.
+            self.effective_rate = user_rate;
         }
         self.last_key_lock_active = stretch_active;
 
@@ -639,12 +656,6 @@ impl DeckEngine {
                 self.stretcher.set_time_ratio(target_ratio);
                 self.last_stretch_ratio = target_ratio;
             }
-            // Audible position advance per output frame: each output
-            // sample represents one frame at the device rate; in source-
-            // frame terms, that's `user_rate * src_step` (so playback
-            // slowed to 0.95× advances ~5% fewer source frames per output
-            // frame, exactly mirroring the linear-interp branch).
-            let audible_step = user_rate * src_step;
             let mut written = 0usize;
             for _safety in 0..32 {
                 if written >= n_out_frames { break; }
@@ -673,22 +684,30 @@ impl DeckEngine {
                                 out[out_base + 1] = r_dsp * volume;
                             }
                         }
-                        // Advance AUDIBLE position per pulled output frame
-                        // — this is what the sync engine reads. It must
-                        // NOT include the stretcher's internal latency,
-                        // otherwise a key-locked follower's beat_distance
-                        // appears ~50ms ahead of where the audio actually
-                        // is, and sync looks aligned while the kicks are
-                        // visibly off.
-                        self.position_frames += got as f64 * audible_step;
+                        // Mixxx pattern: credit pulled audio at the
+                        // EFFECTIVE rate it was originally pushed with,
+                        // not at the user's current rate. PI corrections
+                        // happen between buffers; the first chunk pulled
+                        // here came from input pushed at the previous
+                        // rate. Without this, position_frames advances
+                        // out of step with the audible audio during the
+                        // ~50ms RB latency window, the PI sees jitter
+                        // and overcorrects, and the user sees the tempo
+                        // slider waggle.
+                        self.position_frames +=
+                            got as f64 * self.effective_rate * src_step;
                         written += got;
                         continue;
                     }
                 }
 
-                // Need more input. Read from `read_head_frames` (which
-                // runs ahead of `position_frames` by RB's internal
-                // latency), then advance the read head only.
+                // Need more input. Read from `read_head_frames`. From
+                // this point forward the new input we push is at the
+                // CURRENT user_rate, so subsequent pulls of *that*
+                // input should be credited at the new rate. Update
+                // effective_rate before the push (Mixxx does the same
+                // — see `enginebufferscalerubberband.cpp:322`).
+                self.effective_rate = user_rate;
                 let req = self.stretcher.samples_required();
                 let push_n = req.max(64).min(self.stretch_max_chunk);
                 let mut hit_end = false;
@@ -716,8 +735,6 @@ impl DeckEngine {
                 }
                 self.stretcher.push(push_n, hit_end);
                 if hit_end {
-                    // Mark end-of-stream so we don't keep feeding zeros.
-                    // Actual playback stops once the stretcher drains.
                     self.handle.playing.store(false, Ordering::Release);
                 }
             }
