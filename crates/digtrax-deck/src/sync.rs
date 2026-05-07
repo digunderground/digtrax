@@ -130,6 +130,10 @@ impl SyncEngine {
         let leader_bpm = leader_eng.file_bpm() as f64;
         let follower_bpm = follower_eng.file_bpm() as f64;
         if leader_bpm <= 0.0 || follower_bpm <= 0.0 { return; }
+        // Leader's user-driven rate (tempo slider). Follower's effective
+        // tempo target = leader.file_bpm × leader.rate, so when the user
+        // pushes the leader's tempo slider the follower tracks it.
+        let leader_user_rate = leader_eng.current_rate() as f64;
 
         // Shortest circular distance ∈ (-0.5, 0.5]. err > 0 → leader is
         // ahead of follower → follower must speed up.
@@ -145,7 +149,11 @@ impl SyncEngine {
 
         // Steady-state PI correction.
         let correction = (PI_GAIN * err).clamp(-PI_CAP, PI_CAP);
-        let base_rate = leader_bpm / follower_bpm;
+        // base_rate = effective leader BPM (file BPM × leader's user
+        // rate) / follower file BPM. Bakes in the leader's tempo
+        // slider so the follower tracks user pitch shifts on the
+        // leader without saturating the PI cap.
+        let base_rate = (leader_bpm * leader_user_rate) / follower_bpm;
         let new_rate = base_rate * (1.0 + correction);
         follower_eng.write_rate(new_rate as f32);
     }

@@ -319,6 +319,14 @@ impl DeckEngine {
         self.handle.playing.load(Ordering::Acquire)
     }
 
+    /// Audio-thread side read of the rate atomic. The sync engine uses
+    /// this on the leader so user-driven tempo changes on the leader
+    /// (e.g. dragging the leader's tempo slider) propagate to the
+    /// follower's base rate as well.
+    pub(crate) fn current_rate(&self) -> f32 {
+        f32::from_bits(self.handle.rate.load(Ordering::Acquire))
+    }
+
     /// Current playhead in source frames (audio-thread side, before
     /// the per-buffer atomic store).
     pub(crate) fn position_frames(&self) -> f64 { self.position_frames }

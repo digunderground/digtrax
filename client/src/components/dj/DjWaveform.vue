@@ -57,18 +57,22 @@ function onWheel(e: WheelEvent) {
     if (e.deltaY < 0) zoomIn(); else zoomOut();
 }
 
-// Palette — tied to V4 accent (#00D2BF teal). Lows warm orange so
-// kicks read instantly; mids the accent itself; highs a cool light
-// teal-cyan that's a sibling of the accent, not foreign blue.
+// Palette — pulled from the V4 design system's "track palette" tokens
+// (design/04-digtrax-streamlined/preview.html). Frequency mapping
+// follows the universal DJ-app convention so people can read the
+// waveform at a glance:
+//   low  → --t-orange #FF6B35 (kicks)
+//   mid  → --t-mint   #4ADE80 (vocals / snare)
+//   high → --t-sky    #38BDF8 (hi-hats / cymbals)
 const BAND_PLAYED = [
-    'rgba(255, 138, 76, 1.00)',    // low — warm orange (kicks)
-    'rgba(0, 210, 191, 1.00)',     // mid — accent teal
-    'rgba(166, 240, 230, 1.00)',   // high — light cyan-teal
+    'rgba(255, 107,  53, 1.00)',   // --t-orange
+    'rgba( 74, 222, 128, 1.00)',   // --t-mint
+    'rgba( 56, 189, 248, 1.00)',   // --t-sky
 ];
 const BAND_UNPLAYED = [
-    'rgba(180, 100, 60, 0.55)',
-    'rgba(0, 130, 120, 0.55)',
-    'rgba(100, 150, 145, 0.55)',
+    'rgba(170,  72,  35, 0.55)',
+    'rgba( 50, 148,  85, 0.55)',
+    'rgba( 38, 126, 165, 0.55)',
 ];
 
 function drawBar(

@@ -72,7 +72,30 @@
             </div>
         </div>
 
-        <DjWaveform :id='id' class='dj-deck-wave' />
+        <!-- Waveform + per-deck tempo slider on the right (Mixxx
+             convention). Slider is read-only on a SYNC follower:
+             the sync engine writes the rate atomic ~100×/sec, and a
+             user drag would just be overwritten. The follower's
+             slider still moves visually so the user can see what
+             the engine is doing. -->
+        <div class='dj-deck-wave-row'>
+            <DjWaveform :id='id' class='dj-deck-wave' />
+            <div class='dj-deck-tempo' :class='{ "dj-deck-tempo--follower": isFollower }'>
+                <div class='dj-deck-tempo-pct' :class='ratePctClass'>{{ ratePctStr || "0.0%" }}</div>
+                <input
+                    type='range'
+                    class='dj-deck-tempo-slider'
+                    :value='state.rate'
+                    :min='0.92' :max='1.08' :step='0.0005'
+                    :disabled='isFollower'
+                    @input='onTempo'
+                    @dblclick='onTempoReset'
+                    :title='isFollower
+                        ? "SYNC is following the leader — set this deck as MASTER to drive tempo"
+                        : "Drag for tempo (±8%); double-click to reset to native tempo"'
+                />
+            </div>
+        </div>
 
         <!-- Transport row: play / pause + analyzing / loading hint -->
         <div class='dj-deck-transport'>
@@ -106,7 +129,7 @@ import DjWaveform from './DjWaveform.vue';
 import {
     DeckId, djState,
     loadDeck, playDeck, pauseDeck, stopDeck,
-    setLeader, setSync, beatJump,
+    setLeader, setSync, beatJump, setDeckRate,
 } from '../../scripts/dj';
 import { PLACEHOLDER_IMG } from '../../scripts/quicktag';
 import { httpUrl } from '../../scripts/utils';
@@ -163,6 +186,20 @@ function toggleMaster() {
     if (state.value.isLeader) setLeader(null);
     else setLeader(props.id);
 }
+
+/// Tempo slider input handler. Disabled on followers (the sync engine
+/// owns their rate atomic), but otherwise sends djRate. Double-click
+/// resets to native tempo (1.0).
+function onTempo(e: Event) {
+    const v = parseFloat((e.target as HTMLInputElement).value);
+    if (Number.isFinite(v)) setDeckRate(props.id, v);
+}
+function onTempoReset() { setDeckRate(props.id, 1.0); }
+
+/// True when this deck is following another deck via SYNC. The tempo
+/// slider goes read-only because the sync engine writes the rate
+/// atomic every audio buffer.
+const isFollower = computed(() => state.value.syncOn && !state.value.isLeader);
 
 const remainingMs = computed(() =>
     Math.max(0, state.value.duration - state.value.position)
@@ -388,10 +425,59 @@ function formatTime(ms: number): string {
     background: rgba(0, 210, 191, 0.08);
 }
 
+.dj-deck-wave-row {
+    display: flex;
+    flex: 1;
+    gap: 6px;
+    min-height: 0;
+}
 .dj-deck-wave {
     flex: 1;
     min-height: 0;
     min-width: 0;
+}
+
+/* Per-deck tempo slider (Mixxx-style "pitch fader"). Vertical, ±8%
+   range. Double-click center-detents to native tempo. Disabled
+   visual when the deck is a sync follower — the sync engine drives
+   the rate atomic and a user drag would be instantly overwritten. */
+.dj-deck-tempo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 38px;
+    flex-shrink: 0;
+    gap: 2px;
+}
+.dj-deck-tempo-pct {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--color-fg-muted);
+    line-height: 1;
+}
+.dj-deck-tempo-slider {
+    -webkit-appearance: slider-vertical;
+    appearance: slider-vertical;
+    writing-mode: vertical-lr;
+    direction: rtl;
+    flex: 1;
+    width: 14px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--color-border);
+    border-radius: 2px;
+    cursor: ns-resize;
+    accent-color: var(--color-accent);
+    margin: 0;
+}
+.dj-deck-tempo--follower .dj-deck-tempo-slider {
+    cursor: not-allowed;
+    opacity: 0.7;
+    accent-color: #ffc832; /* amber — "this is being driven by sync" */
+}
+.dj-deck-tempo--follower .dj-deck-tempo-pct {
+    color: #ffc832;
 }
 
 /* Transport row */
