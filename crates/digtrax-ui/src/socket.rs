@@ -32,6 +32,7 @@ use digtrax_autotag::{Tagger, AudioFileInfoImpl, TaggerConfigExt, AUTOTAGGER_PLA
 use digtrax_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use digtrax_platforms::spotify::Spotify;
 use digtrax_player::{AudioSources, AudioPlayer};
+use digtrax_deck::{DeckId, MasterMixer};
 use digtrax_shared::{Settings, COMMIT};
 use digtrax_playlist::{UIPlaylist, PLAYLIST_EXTENSIONS, get_files_from_playlist_file};
 
@@ -68,11 +69,25 @@ enum Action {
 
     Waveform { path: PathBuf },
     PlayerLoad { path: PathBuf },
-    PlayerPlay, 
+    PlayerPlay,
     PlayerPause,
     PlayerSeek { pos: u64 },
     PlayerVolume { volume: f32 },
     PlayerStop,
+
+    // ─── DJ mixer (feature/dj-mixer) ─────────────────────────────────
+    // Dual-deck DJ engine, parallel to the single-deck Player above.
+    // The MasterMixer is constructed lazily on first DjLoad so users
+    // who never enter DJ Mode never spin up a cpal output stream.
+    DjLoad { deck: WireDeckId, path: PathBuf },
+    DjPlay { deck: WireDeckId },
+    DjPause { deck: WireDeckId },
+    DjStop { deck: WireDeckId },
+    DjSeek { deck: WireDeckId, pos: u64 },
+    DjVolume { deck: WireDeckId, value: f32 },
+    DjUnload { deck: WireDeckId },
+    DjCrossfader { value: f32 },
+    DjMasterGain { value: f32 },
 
     QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool>, separators: TagSeparators, limit: Option<bool> },
     QuickTagSave { path: PathBuf, changes: TagChanges },
@@ -124,6 +139,25 @@ enum Action {
     DetectLegacySettings,
 }
 
+/// Wire-format deck id. Lower-case strings ("a"/"b") so the front-end
+/// JS can use plain string literals. Mapped to the engine's [`DeckId`]
+/// when dispatching to the mixer.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum WireDeckId {
+    A,
+    B,
+}
+
+impl From<WireDeckId> for DeckId {
+    fn from(w: WireDeckId) -> Self {
+        match w {
+            WireDeckId::A => DeckId::A,
+            WireDeckId::B => DeckId::B,
+        }
+    }
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type")]
@@ -153,17 +187,34 @@ impl TaggerConfigs {
 // Shared variables in socket
 struct SocketContext {
     player: AudioPlayer,
+    /// DJ Mode mixer. Lazily constructed on first DjLoad — opening a cpal
+    /// output stream is heavyweight (claims the audio device) and pointless
+    /// for users who never enter DJ Mode. Once constructed it stays for the
+    /// life of the WS connection.
+    mixer: Option<MasterMixer>,
     spotify: Option<Spotify>,
     start_context: StartContext
-} 
+}
 
 impl SocketContext {
     pub fn new(start_context: StartContext) -> SocketContext {
         SocketContext {
             player: AudioPlayer::new(),
+            mixer: None,
             spotify: None,
             start_context
         }
+    }
+
+    /// Get-or-construct the mixer. First call opens a cpal output stream;
+    /// subsequent calls reuse the same one. Returns the error from
+    /// `MasterMixer::new` (typically "no default output device") if the
+    /// system audio is misconfigured — surfaced to the UI as a WS error.
+    fn mixer(&mut self) -> Result<&MasterMixer, Error> {
+        if self.mixer.is_none() {
+            self.mixer = Some(MasterMixer::new()?);
+        }
+        Ok(self.mixer.as_ref().expect("mixer just initialized"))
     }
 }
 
@@ -204,34 +255,63 @@ impl InitData {
 
 pub(crate) async fn handle_ws_connection(mut websocket: WebSocket, context: StartContext) -> Result<(), Error> {
     let mut context = SocketContext::new(context);
-    
-    while let Some(message) = websocket.recv().await {
-        match message {
-            Ok(msg) => {
-                match msg.to_text() {
-                    Ok(text) => {
-                        // Handle the WS message
-                        match handle_message(text, &mut websocket, &mut context).await {
-                            Ok(_) => {},
-                            Err(err) => {
-                                // Send error to UI
-                                error!("Websocket: {:?}, Data: {}", err, text);
-                                send_socket(&mut websocket, json!({
-                                    "action": "error",
-                                    "message": &format!("{}", err)
-                                })).await.ok();
-                            }
+
+    // 30 Hz position pusher for the DJ mixer. Closed-loop sync needs
+    // sub-50ms freshness on the playhead; without it the front-end
+    // can only correct against a phantom and audio drifts even though
+    // visualisation looks locked. `Skip` missed-tick behaviour avoids
+    // a flood after a slow handler (analyze, big save) finishes.
+    let mut position_tick = tokio::time::interval(std::time::Duration::from_millis(33));
+    position_tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+
+    loop {
+        tokio::select! {
+            biased;
+            // Inbound user actions get priority — a delayed position
+            // push is recoverable, a delayed user click is not.
+            msg = websocket.recv() => {
+                match msg {
+                    Some(Ok(msg)) => {
+                        match msg.to_text() {
+                            Ok(text) => {
+                                match handle_message(text, &mut websocket, &mut context).await {
+                                    Ok(_) => {},
+                                    Err(err) => {
+                                        error!("Websocket: {:?}, Data: {}", err, text);
+                                        send_socket(&mut websocket, json!({
+                                            "action": "error",
+                                            "message": &format!("{}", err)
+                                        })).await.ok();
+                                    }
+                                }
+                            },
+                            Err(e) => warn!("WebSocket Message is not text: {e}"),
                         }
                     },
-                    Err(e) => warn!("WebSocket Message is not text: {e}"),
+                    Some(Err(e)) => warn!("WebSocket error: {e}"),
+                    None => break, // closed
                 }
             }
 
-            Err(e) => {
-                warn!("WebSocket error: {e}");
+            _ = position_tick.tick() => {
+                // Push playhead snapshots whenever the mixer is alive
+                // (lazy-init only happens on first DjLoad). No-op for
+                // users who never enter DJ Mode.
+                if let Some(mixer) = &context.mixer {
+                    for id in DeckId::ALL {
+                        let snap = mixer.handle().deck(id).snapshot();
+                        if !snap.loaded { continue; }
+                        let _ = send_socket(&mut websocket, json!({
+                            "action": "djPosition",
+                            "deck": id.as_str(),
+                            "pos": snap.position_ms,
+                            "duration": snap.duration_ms,
+                            "playing": snap.playing,
+                        })).await;
+                    }
+                }
             }
         }
-    
     }
 
     Ok(())
@@ -486,6 +566,65 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         },
         Action::PlayerVolume { volume } => context.player.volume(volume),
         Action::PlayerStop => context.player.stop(),
+
+        // ─── DJ mixer (feature/dj-mixer) ──────────────────────────────
+        // First DjLoad lazily opens the cpal output stream + spins up the
+        // mixer. Decode runs on a worker via spawn_blocking so the WS
+        // task stays responsive while a 5-min track parses.
+        Action::DjLoad { deck, path } => {
+            let mixer = context.mixer()?;
+            let deck_handle = mixer.handle().deck(deck.into()).clone();
+            // Echo metadata back immediately (title/artist read from tag,
+            // not the audio decoder), then kick off decode on a blocking
+            // pool thread so the rest of the UI keeps moving.
+            let tag = Tag::load_file(&path, false)?;
+            let title = tag.tag().get_field(Field::Title)
+                .and_then(|i| i.first().map(String::from));
+            let artists = tag.tag().get_field(Field::Artist).unwrap_or(vec![]);
+            send_socket(websocket, json!({
+                "action": "djLoadStart",
+                "deck": deck,
+                "path": &path,
+                "title": title,
+                "artists": artists,
+            })).await.ok();
+            let path_owned = path.clone();
+            let decoded = tokio::task::spawn_blocking(move || {
+                digtrax_deck::decode_file(&path_owned)
+            }).await??;
+            let duration_ms = decoded.duration_ms();
+            deck_handle.load(decoded)?;
+            send_socket(websocket, json!({
+                "action": "djLoaded",
+                "deck": deck,
+                "duration": duration_ms,
+            })).await.ok();
+        },
+        Action::DjPlay { deck } => {
+            context.mixer()?.handle().deck(deck.into()).play();
+        },
+        Action::DjPause { deck } => {
+            context.mixer()?.handle().deck(deck.into()).pause();
+        },
+        Action::DjStop { deck } => {
+            context.mixer()?.handle().deck(deck.into()).stop();
+        },
+        Action::DjSeek { deck, pos } => {
+            context.mixer()?.handle().deck(deck.into()).seek_ms(pos);
+        },
+        Action::DjVolume { deck, value } => {
+            context.mixer()?.handle().deck(deck.into()).set_volume(value);
+        },
+        Action::DjUnload { deck } => {
+            context.mixer()?.handle().deck(deck.into()).unload();
+        },
+        Action::DjCrossfader { value } => {
+            context.mixer()?.handle().set_crossfader(value);
+        },
+        Action::DjMasterGain { value } => {
+            context.mixer()?.handle().set_master_gain(value);
+        },
+
         // Load quicktag files or playlist
         Action::QuickTagLoad { path, playlist, recursive, separators, limit } => {
             let mut data = QuickTagData::default();

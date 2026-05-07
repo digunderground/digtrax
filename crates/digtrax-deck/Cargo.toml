@@ -1,0 +1,33 @@
+[package]
+name = "digtrax-deck"
+version = "0.1.0"
+edition = "2021"
+description = "Sample-accurate dual-deck DJ engine for DigTrax (cpal-based, no Qt)."
+
+# Pure-Rust DSP stack — see plan/ok-lets-take-a-hazy-church.md.
+# All deps are MIT or Apache-2.0; no LGPL/GPL.
+[dependencies]
+# Audio output — cpal gives us the host audio callback, which is what we need
+# for sample-accurate per-buffer sync correction. rodio sits on top of cpal
+# but abstracts the callback away; we can't use it here.
+cpal = "0.15"
+
+# Sample-rate conversion + (Phase 2) pitch-preserving time-stretch.
+# Same crate handles both since SRC is just resampling at a fixed ratio.
+rubato = "0.16"
+
+# File decoding. Already in workspace via rodio's transitive deps; pinning
+# the same major to avoid duplicate compilation.
+symphonia = { version = "0.5", features = ["mp3", "aac", "isomp4", "flac", "vorbis", "wav", "alac", "ogg"] }
+
+# Lock-free MPSC channel for non-RT control commands (Load, Seek). The audio
+# callback never blocks on this — it `try_recv()`s, falling through to silence
+# if no command is pending.
+crossbeam-channel = "0.5"
+
+# FFT for the beat tracker (Phase 2). Pulling it in now so we don't have to
+# touch this Cargo.toml every phase.
+realfft = "3"
+
+anyhow = "1.0"
+log = "0.4"

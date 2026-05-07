@@ -1,5 +1,23 @@
 <template>
-<div class="dt-player">
+<!-- DJ Mode toggle pill — always rendered, top-right, gives the user a
+     way back to the single-deck preview if they flipped DJ Mode on by
+     mistake mid-mix. -->
+<button
+    class='dj-mode-toggle'
+    :class='{ "dj-mode-toggle--on": $1t.settings.value.djMode }'
+    @click='toggleDjMode'
+    :title='$1t.settings.value.djMode ? "Exit DJ Mode (back to preview player)" : "Enter DJ Mode (dual-deck mixer)"'
+>
+    <q-icon
+        :name='$1t.settings.value.djMode ? "mdi-disc-player" : "mdi-headphones"'
+        size='12px'
+        class='q-mr-xs'
+    />
+    <span>{{ $1t.settings.value.djMode ? 'DJ MODE' : 'DJ' }}</span>
+</button>
+
+<MixerPanel v-if='$1t.settings.value.djMode' />
+<div v-else class="dt-player">
     <!-- Track meta -->
     <div class="dt-player-meta">
         <q-img
@@ -93,17 +111,36 @@
 
 <script lang='ts' setup>
 import Waveform from './Waveform.vue';
+import MixerPanel from './dj/MixerPanel.vue';
 import PlaylistDropZone from "./PlaylistDropZone.vue";
 import { Playlist, httpUrl } from '../scripts/utils';
 import { computed, onDeactivated, onMounted, ref, watch } from 'vue';
 import { get1t } from '../scripts/digtrax';
 import { useRoute, useRouter } from 'vue-router';
 import { PLACEHOLDER_IMG } from '../scripts/quicktag';
+import { pauseDeck, djState } from '../scripts/dj';
 
 const $1t = get1t();
 const qtPlaylist = ref<Playlist>({});
 const enablePlaylist = ref(true);
 const playButton = ref<any>();
+
+/// Flip DJ Mode. Going OFF pauses both decks so we don't leave audio
+/// playing in the background. Going ON pauses the single-deck preview
+/// for the same reason (a foot in both modes is confusing).
+function toggleDjMode() {
+    const next = !$1t.settings.value.djMode;
+    if (next) {
+        // Entering DJ Mode — pause the preview player.
+        $1t.player.value.pause();
+    } else {
+        // Leaving DJ Mode — pause both decks.
+        if (djState.deckA.playing) pauseDeck('a');
+        if (djState.deckB.playing) pauseDeck('b');
+    }
+    $1t.settings.value.djMode = next;
+    $1t.saveSettings(false);
+}
 
 function loadQTPlaylist() {
     if (!qtPlaylist.value || !qtPlaylist.value.data) {
@@ -131,6 +168,40 @@ const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent($1t.pla
 </script>
 
 <style lang="scss" scoped>
+/* DJ Mode toggle pill — lives at the top-right of the footer in both
+   states (preview and mixer) so the user can always flip back. */
+.dj-mode-toggle {
+    position: absolute;
+    right: 14px;
+    top: -10px;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full, 9999px);
+    background: var(--color-bg-elevated);
+    color: var(--color-fg-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all var(--duration-fast, 120ms) var(--ease-standard, ease);
+}
+.dj-mode-toggle:hover {
+    color: var(--color-fg);
+    border-color: var(--color-border-strong);
+}
+.dj-mode-toggle--on {
+    color: #001f1c;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 8px var(--color-accent-glow);
+}
+
 .dt-player {
     display: grid;
     grid-template-columns: 280px 1fr 220px;

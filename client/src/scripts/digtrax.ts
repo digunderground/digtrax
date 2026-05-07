@@ -5,6 +5,7 @@ import { Player } from './player';
 import { QTTrack, QuickTag, QuickTagFile } from './quicktag';
 import { Settings } from './settings';
 import { Keybind, Playlist, Spotify, wsUrl } from './utils';
+import { onDjEvent } from './dj';
 import { ManualTag } from './manualtag';
 import ExitDialog from '../components/ExitDialog.vue';
 import router from './router';
@@ -358,6 +359,11 @@ class DigTrax {
                 // Renamer
                 if (json.action.startsWith('renamer')) {
                     this.onRenamerEvent(json);
+                    break;
+                }
+                // DJ Mixer (feature/dj-mixer)
+                if (json.action.startsWith('dj')) {
+                    onDjEvent(json);
                     break;
                 }
 

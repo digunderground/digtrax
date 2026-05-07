@@ -30,6 +30,7 @@ digtrax-tag = { path = "../digtrax-tag" }
 digtrax-shared = { path = "../digtrax-shared" }
 digtrax-tagger = { path = "../digtrax-tagger" }
 digtrax-player = { path = "../digtrax-player" }
+digtrax-deck = { path = "../digtrax-deck" }
 digtrax-autotag = { path = "../digtrax-autotag" }
 digtrax-renamer = { path = "../digtrax-renamer" }
 digtrax-playlist = { path = "../digtrax-playlist" }

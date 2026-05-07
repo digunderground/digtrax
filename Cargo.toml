@@ -11,7 +11,8 @@ members = [
     "crates/digtrax-renamer",
     "crates/digtrax-autotag",
     "crates/digtrax-playlist",
-    "crates/digtrax-platforms"
+    "crates/digtrax-platforms",
+    "crates/digtrax-deck"
 ]
 
 # Workaround for MacOS

@@ -185,28 +185,33 @@ pub fn start_webview() -> Result<(), Error> {
         webview = webview.with_new_window_req_handler(handle_url);
     }
 
-    // Handle dropped folders (for all other than Windows)
+    // Handle dropped folders (for all other than Windows). The handler
+    // also has to return `false` for ALL non-Drop drag events
+    // (Enter/Over/Leave) — wry's drag handler intercepts those at the
+    // webview level, and returning `true` makes the webview treat the
+    // drag as native, which prevents in-page Vue drag-drop from ever
+    // seeing the events. With `false`, the in-page drag handlers in
+    // Quick Tag → DJ Deck work correctly.
     if cfg!(not(target_os = "windows")) {
         webview = webview.with_drag_drop_handler(move |event| {
             match event {
                 DragDropEvent::Drop { mut paths, .. } => {
                     if paths.len() > 1 || paths.is_empty() {
                         warn!("Drop only 1 path!");
-                        return true;
+                        return false;
                     }
                     let path = paths.remove(0);
                     if path.is_dir() {
                         proxy.send_event(CustomWindowEvent::DropFolder(path)).ok();
                         return true;
                     }
-                    if path.is_file() {
-                        return false;
-                    }
-                },
-                _ => {}
+                    // Files: let the in-page Vue drop handler take it.
+                    return false;
+                }
+                // Enter / Over / Leave: don't claim — let the webview
+                // forward them to the page so Vue's @dragenter etc. fire.
+                _ => false,
             }
-
-            true
         });
     }
 

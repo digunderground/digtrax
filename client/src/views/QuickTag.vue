@@ -118,9 +118,16 @@
     <!-- Tracks -->
     <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}' @scroll='onScroll'>
 
-        <!-- Card grid (V4) -->
+        <!-- Card grid (V4) — each card is a drag SOURCE for DJ Mode. Drop
+             onto a deck slot to load the track. -->
         <div class='qt-cards-grid' v-if='!$1t.settings.value.quickTag.thinTracks'>
-            <div v-for='item in tracks' :key='item.path' class='qt-card-grid-item'>
+            <div
+                v-for='item in tracks'
+                :key='item.path'
+                class='qt-card-grid-item'
+                draggable='true'
+                @dragstart='(e: DragEvent) => onTrackDragStart(e, item)'
+            >
                 <q-intersection style='height: 100%;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
                     <QuickTagTile :track='item' :no-art-cache="noArtCacheList.includes(item.path)"></QuickTagTile>
                     <QuickTagContextMenu
@@ -130,12 +137,18 @@
                 </q-intersection>
             </div>
         </div>
-        <!-- Thin tracks -->
+        <!-- Thin tracks — same drag-source treatment. -->
         <div :style='`width: ${tracklistWidth}`'>
-            <div v-for='(item, i) in tracks' :key='item.path' v-if='$1t.settings.value.quickTag.thinTracks'>
+            <div
+                v-for='(item, i) in tracks'
+                :key='item.path'
+                v-if='$1t.settings.value.quickTag.thinTracks'
+                draggable='true'
+                @dragstart='(e: DragEvent) => onTrackDragStart(e, item)'
+            >
                 <q-intersection style='height: 40px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
                     <QuickTagTileThin :track='item' :odd='i % 2 == 1'></QuickTagTileThin>
-                    <QuickTagContextMenu 
+                    <QuickTagContextMenu
                         @manual-tag="onManualTag(item.path)"
                         :path="item.path"
                     ></QuickTagContextMenu>
@@ -338,6 +351,23 @@ const noArtCacheList = ref<string[]>([])
 let afterSave: undefined | Function = undefined;
 
 // Click on track card
+/// Drag-source for DJ Mode. Builds a rich payload (path + title +
+/// artists) on `application/x-digtrax-track`, plus a `text/plain`
+/// fallback (just the path) so any other drop target sees something
+/// useful. Read by `dj/DjDeck.vue::onDrop`.
+function onTrackDragStart(e: DragEvent, track: QTTrack) {
+    if (!e.dataTransfer) return;
+    e.dataTransfer.effectAllowed = 'copy';
+    const payload = JSON.stringify({
+        kind: 'digtrax-track',
+        path: track.path,
+        title: track.title,
+        artists: track.artists ?? [],
+    });
+    e.dataTransfer.setData('application/x-digtrax-track', payload);
+    e.dataTransfer.setData('text/plain', track.path);
+}
+
 function trackClick(track: QTTrack, event: MouseEvent) {
     // Add track to list
     if (event.ctrlKey || event.metaKey || ($1t.info.value.os == 'macos' && event.altKey)) {

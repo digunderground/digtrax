@@ -29,6 +29,11 @@ class Settings {
     tagEditorAutosave: boolean =  false;
     tagEditorPlayer: boolean =  false;
 
+    /// DJ Mode toggle. Off (default) → existing single-deck preview in
+    /// the footer. On → swap in the dual-deck DJ mixer. Persists across
+    /// sessions like every other Setting field.
+    djMode: boolean = false;
+
     // Read from json
     static fromJson(data: any): Settings {
         let settings: Settings = Object.assign(new Settings(), data);
