@@ -71,6 +71,13 @@ pub(crate) enum DeckCommand {
     /// Negative = backward. Clamped to the beats array bounds. No-op
     /// if no beats are loaded yet.
     BeatJump(i32),
+    /// Translate the entire beat grid by `offset_frames` (signed).
+    /// Used by the user-driven beat-grid corrections that mirror
+    /// Mixxx's `beats_translate_half` / `beats_translate_earlier` /
+    /// `beats_translate_later` controls. Negative = shift earlier.
+    /// Out-of-range beats (i.e. negative or past the source) are
+    /// dropped from the array.
+    TranslateBeats(i64),
 }
 
 /// Audio-thread state for one deck. Owned by the cpal callback closure.
@@ -225,6 +232,16 @@ impl DeckHandle {
     /// No-op if beats haven't been analyzed yet.
     pub fn beat_jump(&self, n: i32) {
         let _ = self.cmd_tx.try_send(DeckCommand::BeatJump(n));
+    }
+
+    /// Translate the beat grid by `offset_ms` (signed). Mirrors Mixxx's
+    /// `beats_translate_*` family — for the user-driven kick-vs-snare
+    /// fix (½ beat shift) and small earlier/later nudges.
+    pub fn translate_beats_ms(&self, offset_ms: i64) {
+        let sr = self.source_rate.load(std::sync::atomic::Ordering::Acquire);
+        if sr == 0 { return; }
+        let offset_frames = (offset_ms as f64 * sr as f64 / 1000.0).round() as i64;
+        let _ = self.cmd_tx.try_send(DeckCommand::TranslateBeats(offset_frames));
     }
 
     /// Provide the audio thread with the analyzer's beat sequence.
@@ -427,6 +444,24 @@ impl DeckEngine {
                 DeckCommand::SetBeats { beats_frames, bpm } => {
                     self.beats_frames = beats_frames;
                     self.file_bpm = bpm;
+                }
+                DeckCommand::TranslateBeats(offset_frames) => {
+                    // Shift every beat by `offset_frames`. Drop beats
+                    // that fall outside the source (negative or past
+                    // the end). Frame range derived from loaded audio.
+                    let max_frame = self.audio.as_ref()
+                        .map(|a| a.frames as i64)
+                        .unwrap_or(0);
+                    if max_frame == 0 { continue; }
+                    let mut translated: Vec<u64> =
+                        Vec::with_capacity(self.beats_frames.len());
+                    for &b in &self.beats_frames {
+                        let shifted = b as i64 + offset_frames;
+                        if shifted >= 0 && shifted < max_frame {
+                            translated.push(shifted as u64);
+                        }
+                    }
+                    self.beats_frames = translated;
                 }
                 DeckCommand::BeatJump(n) => {
                     if self.beats_frames.is_empty() { continue; }

@@ -101,20 +101,15 @@ pub fn analyze(audio: &DecodedAudio, bars_per_sec: f32) -> Result<BeatAnalysis, 
         }
     };
 
-    // Half-beat correction. QM-DSP locks onto the strongest periodic
-    // signal — usually the kick, but on tracks where the snare/clap on
-    // beats 2 + 4 is louder than the kick on 1 + 3, the algorithm
-    // returns a beat-grid offset by half a period (everything sits on
-    // snares). Mixxx solves this in BeatUtils by re-scoring the grid
-    // against a low-band envelope: kicks dominate the 30-150 Hz band,
-    // snares don't. If shifting all beats by +period/2 gives higher
-    // mean low-band energy, we landed on snares — shift the whole grid.
-    let beats_seconds = if qm.beats_seconds.len() >= 4 && qm.bpm > 0.0 {
-        maybe_shift_to_kicks(&qm.beats_seconds, &mono, sample_rate, qm.bpm as f32)
-    } else {
-        qm.beats_seconds.clone()
-    };
-
+    // No auto kick-vs-snare correction. Mixxx exposes three manual
+    // controls for this — `beats_translate_half`,
+    // `beats_translate_earlier`, `beats_translate_later` — and lets
+    // the USER decide when to flip the grid (see DjBeatsTranslate WS
+    // action + the ½ / ← / → buttons in DjDeck.vue). Auto-detection
+    // gets fooled by breakdowns where the kick drops out and the
+    // low-band envelope is no longer a reliable signal of where
+    // beats land.
+    let beats_seconds = qm.beats_seconds.clone();
     let beats_ms: Vec<u64> = beats_seconds.iter()
         .map(|&s| (s * 1000.0).round().max(0.0) as u64)
         .collect();
@@ -151,6 +146,7 @@ pub fn analyze(audio: &DecodedAudio, bars_per_sec: f32) -> Result<BeatAnalysis, 
 ///   6. If the shifted set wins, return shifted beats.
 ///
 /// Returns the (possibly shifted) beat sequence in seconds.
+#[allow(dead_code)]
 fn maybe_shift_to_kicks(
     beats_seconds: &[f64],
     mono: &[f64],

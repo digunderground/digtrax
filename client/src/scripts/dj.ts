@@ -270,6 +270,26 @@ export function beatJump(deck: DeckId, beats: number) {
     get1t().send('djBeatJump', { deck, beats });
 }
 
+/// Translate the beat grid by `offsetMs`. Mirrors Mixxx's
+/// `beats_translate_*` family — user-driven kick-vs-snare correction
+/// (½ beat shift) and small earlier/later nudges.
+///
+/// We update `state.beats` optimistically client-side so the
+/// waveform's beat-grid markers move immediately. The backend audio
+/// thread also shifts its own copy of the array, so the sync engine
+/// reads the corrected positions for beat-distance math.
+export function translateBeats(deck: DeckId, offsetMs: number) {
+    const slot = refOf(deck);
+    if (slot.beats.length === 0) return;
+    slot.beats = slot.beats
+        .map(b => b + offsetMs)
+        .filter(b => b >= 0 && b < slot.duration);
+    if (offsetMs !== 0) {
+        slot.firstBeat = slot.beats[0] ?? 0;
+    }
+    get1t().send('djBeatsTranslate', { deck, offsetMs });
+}
+
 /// Set deck pre-fader gain (separate from the channel fader / volume).
 /// Maps to the same backend volume atomic for now, since both
 /// effectively scale output linearly. v2 will split them properly so

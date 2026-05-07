@@ -70,6 +70,13 @@
                 <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(1)'  title='+1 beat'>1⟩</button>
                 <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(4)'  title='+4 beats'>4⟫</button>
             </div>
+            <!-- Beat-grid translate (Mixxx beats_translate_*). Lets the
+                 user fix kick-vs-snare (½) or nudge a few ms either way. -->
+            <div class='dj-deck-translate' :class='{ "dj-deck-translate--disabled": !state.beats.length }' :title='translateTitle'>
+                <button class='dj-deck-translate-btn' :disabled='!state.beats.length' @click='onTranslate(-10)' title='Nudge grid 10 ms earlier'>‹</button>
+                <button class='dj-deck-translate-btn dj-deck-translate-btn--half' :disabled='!state.beats.length' @click='onHalfBeat' title='Shift grid by ½ beat (kick ↔ snare)'>½</button>
+                <button class='dj-deck-translate-btn' :disabled='!state.beats.length' @click='onTranslate(10)' title='Nudge grid 10 ms later'>›</button>
+            </div>
         </div>
 
         <!-- Waveform + per-deck tempo slider on the right (Mixxx
@@ -129,7 +136,7 @@ import DjWaveform from './DjWaveform.vue';
 import {
     DeckId, djState,
     loadDeck, playDeck, pauseDeck, stopDeck,
-    setLeader, setSync, beatJump, setDeckRate,
+    setLeader, setSync, beatJump, setDeckRate, translateBeats,
 } from '../../scripts/dj';
 import { PLACEHOLDER_IMG } from '../../scripts/quicktag';
 import { httpUrl } from '../../scripts/utils';
@@ -181,6 +188,21 @@ function togglePlay() {
 }
 function onStop() { stopDeck(props.id); }
 function onJump(beats: number) { beatJump(props.id, beats); }
+
+/// Beat-grid translation handlers (Mixxx beats_translate_*).
+/// onTranslate(±10) is the small earlier/later nudge.
+/// onHalfBeat shifts by exactly half a beat = the kick/snare flip.
+function onTranslate(offsetMs: number) {
+    translateBeats(props.id, offsetMs);
+}
+function onHalfBeat() {
+    if (!state.value.bpm || state.value.bpm <= 0) return;
+    const halfBeatMs = (60_000 / state.value.bpm) / 2;
+    translateBeats(props.id, halfBeatMs);
+}
+const translateTitle = computed(() => state.value.beats.length
+    ? 'Beat-grid: ‹ nudge -10ms · ½ shift half-beat (kick↔snare) · › nudge +10ms'
+    : 'Beat-grid translate available after analysis');
 function toggleSync() { setSync(props.id, !state.value.syncOn); }
 function toggleMaster() {
     if (state.value.isLeader) setLeader(null);
@@ -423,6 +445,45 @@ function formatTime(ms: number): string {
     color: var(--color-fg);
     border-color: var(--color-accent);
     background: rgba(0, 210, 191, 0.08);
+}
+
+/* Beat-grid translate (Mixxx beats_translate_* family). Subtle
+   amber tint distinguishes them from beat-jump (which moves the
+   playhead) since these move the GRID instead. */
+.dj-deck-translate {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: 4px;
+}
+.dj-deck-translate--disabled { opacity: 0.4; }
+.dj-deck-translate-btn {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    min-width: 18px;
+    border-radius: var(--radius-xs, 3px);
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-fg-muted);
+    cursor: pointer;
+    transition: all var(--duration-fast, 120ms) ease;
+}
+.dj-deck-translate-btn:disabled { cursor: not-allowed; }
+.dj-deck-translate-btn:not(:disabled):hover {
+    color: #1a0e00;
+    border-color: #ffc832;
+    background: #ffc832;
+}
+.dj-deck-translate-btn--half {
+    font-weight: 800;
+    color: #ffc832;
+    border-color: rgba(255, 200, 50, 0.5);
+}
+.dj-deck-translate-btn--half:not(:disabled):hover {
+    color: #1a0e00;
+    background: #ffc832;
+    border-color: #ffc832;
 }
 
 .dj-deck-wave-row {
