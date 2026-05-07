@@ -1,19 +1,18 @@
 <template>
-<!-- DJ Mode toggle pill — always rendered, top-right, gives the user a
-     way back to the single-deck preview if they flipped DJ Mode on by
-     mistake mid-mix. -->
+<!-- DJ Mode toggle — top-right of the footer. Larger + breathing
+     pulse when OFF so users notice it. Lit accent when ON. -->
 <button
     class='dj-mode-toggle'
-    :class='{ "dj-mode-toggle--on": $1t.settings.value.djMode }'
+    :class='{ "dj-mode-toggle--on": $1t.settings.value.djMode, "dj-mode-toggle--breathing": !$1t.settings.value.djMode }'
     @click='toggleDjMode'
     :title='$1t.settings.value.djMode ? "Exit DJ Mode (back to preview player)" : "Enter DJ Mode (dual-deck mixer)"'
 >
     <q-icon
         :name='$1t.settings.value.djMode ? "mdi-disc-player" : "mdi-headphones"'
-        size='12px'
-        class='q-mr-xs'
+        size='14px'
+        class='q-mr-sm'
     />
-    <span>{{ $1t.settings.value.djMode ? 'DJ MODE' : 'DJ' }}</span>
+    <span>{{ $1t.settings.value.djMode ? 'DJ MODE' : 'DJ MODE' }}</span>
 </button>
 
 <MixerPanel v-if='$1t.settings.value.djMode' />
@@ -168,38 +167,60 @@ const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent($1t.pla
 </script>
 
 <style lang="scss" scoped>
-/* DJ Mode toggle pill — lives at the top-right of the footer in both
-   states (preview and mixer) so the user can always flip back. */
+/* DJ Mode toggle — top-right of the footer. Larger + animated when
+   OFF so users notice it. Hard-glow when ON. Always reachable so the
+   user can flip back to the single-deck preview at any time. */
 .dj-mode-toggle {
     position: absolute;
     right: 14px;
-    top: -10px;
+    top: -16px;
     z-index: 10;
     display: inline-flex;
     align-items: center;
-    height: 22px;
-    padding: 0 12px;
-    border: 1px solid var(--color-border);
+    height: 32px;
+    padding: 0 18px;
+    border: 1px solid var(--color-accent);
     border-radius: var(--radius-full, 9999px);
     background: var(--color-bg-elevated);
-    color: var(--color-fg-muted);
+    color: var(--color-accent);
     font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.10em;
     cursor: pointer;
-    transition: all var(--duration-fast, 120ms) var(--ease-standard, ease);
+    transition: all var(--duration-fast, 160ms) var(--ease-standard, ease);
 }
 .dj-mode-toggle:hover {
-    color: var(--color-fg);
-    border-color: var(--color-border-strong);
+    color: #001f1c;
+    background: var(--color-accent);
+    box-shadow: 0 0 14px var(--color-accent-glow);
+    transform: translateY(-1px);
 }
 .dj-mode-toggle--on {
     color: #001f1c;
     background: var(--color-accent);
     border-color: var(--color-accent);
-    box-shadow: 0 0 8px var(--color-accent-glow);
+    box-shadow: 0 0 14px var(--color-accent-glow);
+}
+/* Subtle breathing pulse when OFF — draws the eye without being
+   obnoxious. Pauses on hover so the button doesn't move under the
+   cursor while clicking. */
+.dj-mode-toggle--breathing {
+    animation: dj-mode-breathe 3.2s ease-in-out infinite;
+}
+.dj-mode-toggle--breathing:hover {
+    animation: none;
+}
+@keyframes dj-mode-breathe {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(0, 210, 191, 0.0);
+        border-color: var(--color-accent);
+    }
+    50% {
+        box-shadow: 0 0 14px 2px rgba(0, 210, 191, 0.45);
+        border-color: var(--color-accent);
+    }
 }
 
 .dt-player {

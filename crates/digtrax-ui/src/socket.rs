@@ -653,11 +653,13 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 "duration": duration_ms,
             })).await.ok();
 
-            // Beat tracking. 10 bars/sec spectrum density = 100 ms per
-            // bin; for a 5-min track that's 3000 bins (300 visible at
-            // 30s zoom). Plenty of resolution.
+            // Beat tracking. 30 bars/sec spectrum density = 33 ms per
+            // bin; for a 5-min track that's 9000 bins (900 visible at
+            // 30s zoom — about 3 bars per pixel on a 1414px wide
+            // canvas, so the waveform reads as a continuous shape
+            // rather than blocky tiles).
             let analysis = tokio::task::spawn_blocking(move || {
-                digtrax_deck::analyze(&decoded_for_analysis, 10.0)
+                digtrax_deck::analyze(&decoded_for_analysis, 30.0)
             }).await??;
             // Push the beat sequence into the audio thread so the sync
             // engine can compute beat-distance against it. Must happen
@@ -669,7 +671,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 "bpm": analysis.bpm,
                 "firstBeatMs": analysis.first_beat_ms,
                 "confidence": analysis.confidence,
-                "barsPerSecond": 10.0,
+                "barsPerSecond": 30.0,
                 "spectrumBars": analysis.spectrum_bars,
                 "beatsMs": analysis.beats_ms,
             })).await.ok();

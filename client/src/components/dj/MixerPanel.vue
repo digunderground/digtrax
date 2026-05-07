@@ -27,17 +27,10 @@
             <DjChannelStrip id='b' />
         </div>
 
-        <!-- Master gain (small horizontal slider above the crossfader). -->
-        <div class='dj-mixer-master'>
-            <q-icon name='mdi-tune-vertical' size='12px' class='q-mr-xs' />
-            <q-slider
-                :model-value='djState.masterGain'
-                @update:model-value='onMaster'
-                :min='0' :max='2' :step='0.01'
-                class='dj-mixer-master-slider'
-            />
-            <span class='dj-mixer-master-label'>MAIN</span>
-        </div>
+        <!-- Master gain slider deferred until we have a real audio
+             route to use it for (post-mix monitor, second device, etc).
+             For v1 the user already controls level via per-deck VOL +
+             per-deck GAIN, so the master slider just duplicates them. -->
 
         <Crossfader
             :model-value='djState.crossfader'
@@ -53,11 +46,8 @@
 import DjDeck from './DjDeck.vue';
 import Crossfader from './Crossfader.vue';
 import DjChannelStrip from './DjChannelStrip.vue';
-import { djState, setCrossfader, setMasterGain, zoomIn, zoomOut } from '../../scripts/dj';
+import { djState, setCrossfader, zoomIn, zoomOut } from '../../scripts/dj';
 
-function onMaster(v: number | null) {
-    if (typeof v === 'number') setMasterGain(v);
-}
 function onZoomIn() { zoomIn(); }
 function onZoomOut() { zoomOut(); }
 </script>
@@ -79,9 +69,9 @@ function onZoomOut() { zoomOut(); }
     display: flex;
     flex-direction: column;
     gap: 6px;
-    /* 2 channel strips × ~104px each + small gap = ~220px. Strips
-       are 80px knob columns + 24px fader. */
-    width: 220px;
+    /* 2 channel strips × ~60px each + small gap = ~140px. Strips
+       are a 36px knob column + 24px fader. */
+    width: 160px;
     flex-shrink: 0;
     padding: 2px;
 }

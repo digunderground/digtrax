@@ -57,15 +57,18 @@ function onWheel(e: WheelEvent) {
     if (e.deltaY < 0) zoomIn(); else zoomOut();
 }
 
+// Palette — tied to V4 accent (#00D2BF teal). Lows warm orange so
+// kicks read instantly; mids the accent itself; highs a cool light
+// teal-cyan that's a sibling of the accent, not foreign blue.
 const BAND_PLAYED = [
-    'rgba(255, 90, 75, 1.0)',    // low — red/orange (kicks)
-    'rgba(0, 230, 200, 1.0)',    // mid — accent teal (vox/snare)
-    'rgba(140, 190, 255, 1.0)',  // high — cool blue (hats)
+    'rgba(255, 138, 76, 1.00)',    // low — warm orange (kicks)
+    'rgba(0, 210, 191, 1.00)',     // mid — accent teal
+    'rgba(166, 240, 230, 1.00)',   // high — light cyan-teal
 ];
 const BAND_UNPLAYED = [
-    'rgba(220, 75, 60, 0.85)',
-    'rgba(0, 200, 175, 0.85)',
-    'rgba(120, 170, 235, 0.85)',
+    'rgba(180, 100, 60, 0.55)',
+    'rgba(0, 130, 120, 0.55)',
+    'rgba(100, 150, 145, 0.55)',
 ];
 
 function drawBar(
@@ -128,15 +131,20 @@ function drawMain() {
     const firstBar = Math.max(0, Math.floor(windowStartMs / msPerBar));
     const lastBar = Math.min(bars.length - 1, Math.ceil(windowEndMs / msPerBar));
     const minHeight = Math.max(2, h * 0.06);
-    const barWidth = Math.max(1, msPerBar * pxPerMs - 0.5);
     const playedX = PLAYHEAD_RATIO * w;
 
+    // At higher bar densities (30/sec) we may have multiple source
+    // bars per pixel column. Drawing 1px-wide rectangles with no gap
+    // gives a continuous waveform shape rather than the blocky
+    // mosaic look we had at 10/sec. Pixel-aligned sub-pixel widths
+    // keep the canvas crisp on retina displays.
+    const barPxWidth = Math.max(1, msPerBar * pxPerMs);
     for (let i = firstBar; i <= lastBar; i++) {
         const barStartMs = i * msPerBar;
         const x = (barStartMs - windowStartMs) * pxPerMs;
-        const cx = x + barWidth / 2;
+        const cx = x + barPxWidth / 2;
         const played = cx <= playedX;
-        drawBar(ctx, x, barWidth, h, bars[i] || [0, 0, 0], played, minHeight);
+        drawBar(ctx, x, barPxWidth, h, bars[i] || [0, 0, 0], played, minHeight);
     }
 
     // Beat grid — render directly from the detected beats array. By

@@ -1,19 +1,19 @@
 <template>
-<!-- Per-deck channel strip — Mixxx layout.
-       2-column knob grid:  GAIN | HI
-                            FLTR | MID
-                              ?  | LO
-       Vertical VOL fader on the side.
-     Single column total ~80px wide so two strips + crossfader fit in
-     a center column < 250px wide (vs. our prior 200-px strips that
-     were too tall because of vertical sliders for everything). -->
+<!-- Per-deck channel strip — simplified for v1 (Mixxx parity comes
+     incrementally). FILTER, FX, KEY, PAN deferred to v2.
+       Layout (vertical column):
+         GAIN
+         HI
+         MID
+         LO
+       Channel VOL fader on the right.
+     Single 32px-wide column of rotary knobs + 24px fader = ~60px
+     total per strip. Two strips fit in a ~140px center column. -->
 <div class='dj-strip'>
     <div class='dj-strip-knobs'>
         <DjRotaryKnob label='GAIN' :model-value='state.gain'   @update:model-value='(v: any) => onSetGain(v)'   :min='0' :max='2' :default-value='1.0' />
         <DjRotaryKnob label='HI'   :model-value='state.eqHigh' @update:model-value='(v: any) => onSetEq("high", v)' :min='0' :max='2' :default-value='1.0' />
-        <DjRotaryKnob label='FLTR' :model-value='state.filter' @update:model-value='(v: any) => onSetFilter(v)' :min='-1' :max='1' :default-value='0.0' :bipolar='true' />
         <DjRotaryKnob label='MID'  :model-value='state.eqMid'  @update:model-value='(v: any) => onSetEq("mid",  v)' :min='0' :max='2' :default-value='1.0' />
-        <div class='dj-strip-spacer' />
         <DjRotaryKnob label='LO'   :model-value='state.eqLow'  @update:model-value='(v: any) => onSetEq("low",  v)' :min='0' :max='2' :default-value='1.0' />
     </div>
     <div class='dj-strip-fader-wrap'>
@@ -34,7 +34,7 @@ import { computed, PropType } from 'vue';
 import DjRotaryKnob from './DjRotaryKnob.vue';
 import {
     DeckId, djState,
-    setEq, setFilter, setGain, setDeckVolume, type EqBand,
+    setEq, setGain, setDeckVolume, type EqBand,
 } from '../../scripts/dj';
 
 const props = defineProps({
@@ -44,7 +44,6 @@ const state = computed(() => props.id === 'a' ? djState.deckA : djState.deckB);
 
 function onSetGain(v: number) { setGain(props.id, v); }
 function onSetEq(band: EqBand, v: number) { setEq(props.id, band, v); }
-function onSetFilter(v: number) { setFilter(props.id, v); }
 function onVolume(e: Event) {
     const v = parseFloat((e.target as HTMLInputElement).value);
     if (Number.isFinite(v)) setDeckVolume(props.id, v);
@@ -56,32 +55,23 @@ function onVolumeReset() { setDeckVolume(props.id, 0.7); }
 .dj-strip {
     display: flex;
     align-items: stretch;
-    gap: 6px;
-    padding: 6px 4px;
+    gap: 4px;
+    padding: 4px 3px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-xs, 4px);
 }
 .dj-strip-knobs {
-    display: grid;
-    grid-template-columns: 36px 36px;
-    grid-auto-rows: 44px;
-    column-gap: 2px;
-    row-gap: 2px;
-    align-content: start;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
 }
-.dj-strip-spacer {
-    /* Empty cell so LO sits on row 3 column 2, matching Mixxx. */
-}
-
 .dj-strip-fader-wrap {
     display: flex;
     align-items: stretch;
-    width: 24px;
+    width: 22px;
 }
-/* Vertical channel-volume fader. CSS appearance reset + custom thumb so
-   it actually looks like a DJ-mixer fader (chunky teal handle, dim
-   track). Mac browsers default to ugly cyan; we override. */
 .dj-strip-fader {
     -webkit-appearance: slider-vertical;
     appearance: slider-vertical;

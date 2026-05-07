@@ -326,6 +326,22 @@ export function onDjEvent(json: any) {
                 ? json.beatsMs.map((b: any) => Number(b) || 0)
                 : [];
             slot.analyzing = false;
+
+            // Auto-master / auto-sync — DJ ergonomics. The "first deck
+            // loaded" becomes the LEADER; the second deck loaded gets
+            // SYNC engaged automatically so the user can drop two
+            // tracks and have them already locked. Done after analysis
+            // so we have BPM data for the sync to actually take effect.
+            if (slot.bpm > 0) {
+                const otherId: DeckId = id === 'a' ? 'b' : 'a';
+                const otherLeader = refOf(otherId).isLeader;
+                const anyLeader = djState.deckA.isLeader || djState.deckB.isLeader;
+                if (!anyLeader) {
+                    setLeader(id);
+                } else if (otherLeader && !slot.syncOn) {
+                    setSync(id, true);
+                }
+            }
             return;
         }
         case 'djPosition': {
