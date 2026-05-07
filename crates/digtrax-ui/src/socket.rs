@@ -107,6 +107,9 @@ enum Action {
     /// DJ-style filter knob. `value` ∈ [-1, 1]; 0 = bypass, -1 = full
     /// LPF, +1 = full HPF.
     DjFilter { deck: WireDeckId, value: f32 },
+    /// Quantized seek: jump `beats` (positive = forward, negative =
+    /// backward) relative to the current bracket beat.
+    DjBeatJump { deck: WireDeckId, beats: i32 },
 
     QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool>, separators: TagSeparators, limit: Option<bool> },
     QuickTagSave { path: PathBuf, changes: TagChanges },
@@ -709,6 +712,9 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         },
         Action::DjFilter { deck, value } => {
             context.mixer()?.handle().deck(deck.into()).set_filter(value);
+        },
+        Action::DjBeatJump { deck, beats } => {
+            context.mixer()?.handle().deck(deck.into()).beat_jump(beats);
         },
 
         // Load quicktag files or playlist

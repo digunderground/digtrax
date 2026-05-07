@@ -92,6 +92,13 @@
                 />
             </div>
             <span class='dj-deck-time'>{{ formatTime(state.position) }} / {{ formatTime(state.duration) }}</span>
+            <!-- Beat jump. Disabled until BPM detection finishes. -->
+            <div class='dj-deck-jump' :class='{ "dj-deck-jump--disabled": !state.beats.length }'>
+                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(-4)' title='Jump back 4 beats'>⟪4</button>
+                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(-1)' title='Jump back 1 beat'>⟨1</button>
+                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(1)' title='Jump forward 1 beat'>1⟩</button>
+                <button class='dj-deck-jump-btn' :disabled='!state.beats.length' @click='onJump(4)' title='Jump forward 4 beats'>4⟫</button>
+            </div>
         </div>
 
         <!-- Pitch / rate slider — vinyl-style. Center detent at 1.0 ±
@@ -124,7 +131,7 @@ import DjEqStrip from './DjEqStrip.vue';
 import {
     DeckId, djState,
     loadDeck, playDeck, pauseDeck, stopDeck, setDeckVolume, setDeckRate,
-    setLeader, setSync,
+    setLeader, setSync, beatJump,
 } from '../../scripts/dj';
 
 const props = defineProps({
@@ -192,6 +199,7 @@ function toggleSync() {
 
 /// MASTER: make this deck the leader (or clear if already leader). The
 /// other deck with SYNC on follows.
+function onJump(beats: number) { beatJump(props.id, beats); }
 function toggleMaster() {
     if (state.value.isLeader) {
         setLeader(null);
@@ -377,6 +385,31 @@ function formatTime(ms: number): string {
     background: var(--color-accent) !important;
     border-color: var(--color-accent) !important;
     box-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+.dj-deck-jump {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: 4px;
+}
+.dj-deck-jump--disabled { opacity: 0.4; }
+.dj-deck-jump-btn {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: var(--radius-xs, 3px);
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-fg-muted);
+    cursor: pointer;
+    transition: all var(--duration-fast, 120ms) ease;
+}
+.dj-deck-jump-btn:disabled { cursor: not-allowed; }
+.dj-deck-jump-btn:not(:disabled):hover {
+    color: var(--color-fg);
+    border-color: var(--color-accent);
+    background: rgba(0, 210, 191, 0.08);
 }
 
 .dj-deck-rate {

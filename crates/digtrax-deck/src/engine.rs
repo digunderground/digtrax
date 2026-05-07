@@ -67,6 +67,10 @@ pub(crate) enum DeckCommand {
     /// the analyzer finishes so the audio thread has the data it needs
     /// for sync-engine beat-distance math.
     SetBeats { beats_frames: Vec<u64>, bpm: f32 },
+    /// Quantized seek: jump `n` beats from the current bracket beat.
+    /// Negative = backward. Clamped to the beats array bounds. No-op
+    /// if no beats are loaded yet.
+    BeatJump(i32),
 }
 
 /// Audio-thread state for one deck. Owned by the cpal callback closure.
@@ -215,6 +219,12 @@ impl DeckHandle {
     pub fn set_filter(&self, value: f32) {
         let v = value.clamp(-1.0, 1.0);
         self.filter_knob.store(v.to_bits(), Ordering::Release);
+    }
+
+    /// Jump `n` beats from the current bracket beat. Negative = back.
+    /// No-op if beats haven't been analyzed yet.
+    pub fn beat_jump(&self, n: i32) {
+        let _ = self.cmd_tx.try_send(DeckCommand::BeatJump(n));
     }
 
     /// Provide the audio thread with the analyzer's beat sequence.
@@ -380,6 +390,23 @@ impl DeckEngine {
                 DeckCommand::SetBeats { beats_frames, bpm } => {
                     self.beats_frames = beats_frames;
                     self.file_bpm = bpm;
+                }
+                DeckCommand::BeatJump(n) => {
+                    if self.beats_frames.is_empty() { continue; }
+                    let pos = self.position_frames as u64;
+                    // Bracket beat: the largest beat ≤ current position.
+                    let current_idx = self.beats_frames
+                        .iter()
+                        .rposition(|&b| b <= pos)
+                        .unwrap_or(0);
+                    let last = self.beats_frames.len() as i32 - 1;
+                    let target_idx = (current_idx as i32 + n).clamp(0, last) as usize;
+                    let target_frame = self.beats_frames[target_idx];
+                    if let Some(a) = &self.audio {
+                        let f = target_frame.min(a.frames.saturating_sub(1));
+                        self.position_frames = f as f64;
+                        self.handle.position_frames.store(f, Ordering::Release);
+                    }
                 }
             }
         }

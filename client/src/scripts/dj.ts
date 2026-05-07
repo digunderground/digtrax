@@ -223,6 +223,13 @@ export function setFilter(deck: DeckId, value: number) {
     get1t().send('djFilter', { deck, value: v });
 }
 
+/// Beat jump. Positive = forward, negative = backward. No-op until the
+/// deck's beat analysis has finished. The audio thread quantizes from
+/// the current bracket beat.
+export function beatJump(deck: DeckId, beats: number) {
+    get1t().send('djBeatJump', { deck, beats });
+}
+
 // ─── Inbound (backend → frontend) ─────────────────────────────────────
 
 /**
