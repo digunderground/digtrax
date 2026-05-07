@@ -38,14 +38,15 @@ use std::sync::Arc;
 use crate::engine::DeckEngine;
 use crate::DeckId;
 
-/// PI gain. Mixxx's value, kept.
+/// PI gain — Mixxx's exact `bpmcontrol.cpp::calcSyncedRate` value.
 const PI_GAIN: f64 = 0.7;
-/// Rate-correction cap. **Widened** from Mixxx's 2% to 5% because our
-/// BPM detection has lower precision (see module doc).
-const PI_CAP: f64 = 0.05;
-/// Beyond this absolute phase error, snap-seek instead of trying to
-/// PI-correct (would saturate the cap for too long).
-const TRAIN_WRECK: f64 = 0.25;
+/// Rate-correction cap — Mixxx's exact value, restored. Now valid
+/// because we run QM-DSP for beat detection (sub-frame BPM precision)
+/// and snap-seek on engage so the PI controller only handles steady-
+/// state corrections within ±2%.
+const PI_CAP: f64 = 0.02;
+/// Beyond this absolute phase error, snap-seek instead of PI-correcting.
+const TRAIN_WRECK: f64 = 0.2;
 
 /// Audio-thread side. Owned by the cpal callback closure alongside
 /// the two [`DeckEngine`]s.

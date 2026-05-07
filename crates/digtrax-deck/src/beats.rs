@@ -59,14 +59,12 @@ pub struct BeatAnalysis {
     pub spectrum_bars: Vec<[f32; 3]>,
 }
 
-/// Run the full analysis on a decoded track. Blocking — call from
-/// `tokio::task::spawn_blocking`.
+/// Run beat detection (Mixxx-exact via vendored QM-DSP) + the
+/// independent 3-band spectrum visualization pass on a decoded track.
+/// Blocking — call from `tokio::task::spawn_blocking`.
 pub fn analyze(audio: &DecodedAudio, bars_per_sec: f32) -> Result<BeatAnalysis, Error> {
     let bars_per_sec = if bars_per_sec.is_finite() && bars_per_sec > 0.0 { bars_per_sec } else { 10.0 };
     let sample_rate = audio.sample_rate as f64;
-
-    // Mix interleaved stereo to mono f64 for the DSP. f64 throughout the
-    // beat tracker — biquads compound rounding error if we drop to f32.
     let n_frames = audio.frames as usize;
     if n_frames < (sample_rate * 2.0) as usize {
         return Ok(BeatAnalysis {
@@ -74,6 +72,9 @@ pub fn analyze(audio: &DecodedAudio, bars_per_sec: f32) -> Result<BeatAnalysis, 
             beats_ms: vec![], spectrum_bars: vec![],
         });
     }
+
+    // Mono mixdown of the f32 stereo source to f64 for QM-DSP. Keep f64
+    // throughout the analyzer — Mixxx's QM-DSP pipeline is double precision.
     let mut mono = Vec::<f64>::with_capacity(n_frames);
     let samples = audio.samples.as_ref();
     for f in 0..n_frames {
@@ -81,15 +82,60 @@ pub fn analyze(audio: &DecodedAudio, bars_per_sec: f32) -> Result<BeatAnalysis, 
         mono.push((samples[i] as f64 + samples[i + 1] as f64) * 0.5);
     }
 
-    let (bpm, first_beat_ms, beats_ms, confidence) = detect_kicks(&mono, sample_rate);
+    // Hand to QM-DSP. This runs the EXACT Mixxx pipeline:
+    //   step_size = (int)(sr * 0.01161),
+    //   window_size = next_pow2(sr / 50),
+    //   DF_COMPLEXSD onset detection,
+    //   TempoTrackV2 beat tracker (RCF + Viterbi over per-frame periods,
+    //   Ellis DP for actual beat positions).
+    // Same code Mixxx ships — same accuracy.
+    let qm = match crate::qmdsp::analyze(&mono, audio.sample_rate) {
+        Ok(q) => q,
+        Err(msg) => {
+            log::warn!("QM-DSP analysis failed: {msg}; emitting empty beats");
+            return Ok(BeatAnalysis {
+                bpm: 0.0, first_beat_ms: 0, confidence: 0.0,
+                beats_ms: vec![],
+                spectrum_bars: compute_spectrum(&mono, sample_rate, bars_per_sec),
+            });
+        }
+    };
+
+    let beats_ms: Vec<u64> = qm.beats_seconds.iter()
+        .map(|&s| (s * 1000.0).round().max(0.0) as u64)
+        .collect();
+    let first_beat_ms = beats_ms.first().copied().unwrap_or(0);
+    let bpm = qm.bpm as f32;
+
+    // Confidence: fraction of inter-beat intervals within 5% of median.
+    // High = consistent beats, low = analyzer hunting / weak pulse.
+    let confidence = compute_confidence(&qm.beats_seconds);
+
+    log::info!("qmdsp: {:.3} BPM, {} beats, confidence {:.2}",
+               bpm, beats_ms.len(), confidence);
+
     let spectrum_bars = compute_spectrum(&mono, sample_rate, bars_per_sec);
     Ok(BeatAnalysis { bpm, first_beat_ms, confidence, beats_ms, spectrum_bars })
 }
 
+fn compute_confidence(beats_seconds: &[f64]) -> f32 {
+    if beats_seconds.len() < 3 { return 0.0; }
+    let mut intervals: Vec<f64> = beats_seconds.windows(2)
+        .map(|w| w[1] - w[0])
+        .collect();
+    intervals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let median = intervals[intervals.len() / 2];
+    if median <= 0.0 { return 0.0; }
+    let near = intervals.iter().filter(|&&x| (x - median).abs() / median < 0.05).count();
+    (near as f32 / intervals.len() as f32).clamp(0.0, 1.0)
+}
+
 // =============================================================================
-// Kick tracker.
+// Legacy kick tracker — kept around as a reference but no longer used.
+// QM-DSP via FFI is the active path.
 // =============================================================================
 
+#[allow(dead_code)]
 fn detect_kicks(mono: &[f64], sample_rate: f64) -> (f32, u64, Vec<u64>, f32) {
     let bp = bandpass_zero_phase(mono, sample_rate, KICK_LO_HZ, KICK_HI_HZ);
     let env = envelope_follower(&bp, sample_rate, ENV_RATE, ENV_LPF_HZ);

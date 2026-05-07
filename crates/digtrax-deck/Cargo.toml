@@ -2,7 +2,11 @@
 name = "digtrax-deck"
 version = "0.1.0"
 edition = "2021"
-description = "Sample-accurate dual-deck DJ engine for DigTrax (cpal-based, no Qt)."
+description = "Sample-accurate dual-deck DJ engine for DigTrax (cpal-based, no Qt). Links vendored QM-DSP (GPL-2) for beat detection."
+build = "build.rs"
+
+[build-dependencies]
+cc = "1"
 
 # Pure-Rust DSP stack — see plan/ok-lets-take-a-hazy-church.md.
 # All deps are MIT or Apache-2.0; no LGPL/GPL.

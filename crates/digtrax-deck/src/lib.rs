@@ -42,6 +42,7 @@ mod engine;
 mod eq;
 mod filter;
 mod master;
+mod qmdsp;
 mod sync;
 
 pub use beats::{analyze, BeatAnalysis};
