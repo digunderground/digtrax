@@ -118,18 +118,22 @@
     <!-- Tracks -->
     <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}' @scroll='onScroll'>
 
-        <!-- Card grid (V4) — each card is a drag SOURCE for DJ Mode. Drop
-             onto a deck slot to load the track. -->
+        <!-- Card grid (V4). Each card is a drag SOURCE for DJ Mode.
+             draggable="true" goes on a STABLE inner div inside the
+             q-intersection rather than the v-for wrapper — q-intersection
+             lazy-mounts its children, so a draggable on the outer wrapper
+             disappears whenever the card scrolls out, breaking drags that
+             initiate on a row that just appeared. -->
         <div class='qt-cards-grid' v-if='!$1t.settings.value.quickTag.thinTracks'>
-            <div
-                v-for='item in tracks'
-                :key='item.path'
-                class='qt-card-grid-item'
-                draggable='true'
-                @dragstart='(e: DragEvent) => onTrackDragStart(e, item)'
-            >
+            <div v-for='item in tracks' :key='item.path' class='qt-card-grid-item'>
                 <q-intersection style='height: 100%;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
-                    <QuickTagTile :track='item' :no-art-cache="noArtCacheList.includes(item.path)"></QuickTagTile>
+                    <div
+                        class='qt-card-drag-host'
+                        draggable='true'
+                        @dragstart='(e: DragEvent) => onTrackDragStart(e, item)'
+                    >
+                        <QuickTagTile :track='item' :no-art-cache="noArtCacheList.includes(item.path)"></QuickTagTile>
+                    </div>
                     <QuickTagContextMenu
                         @manual-tag="onManualTag(item.path)"
                         :path="item.path"
@@ -137,17 +141,17 @@
                 </q-intersection>
             </div>
         </div>
-        <!-- Thin tracks — same drag-source treatment. -->
+        <!-- Thin tracks — same drag-host pattern. -->
         <div :style='`width: ${tracklistWidth}`'>
-            <div
-                v-for='(item, i) in tracks'
-                :key='item.path'
-                v-if='$1t.settings.value.quickTag.thinTracks'
-                draggable='true'
-                @dragstart='(e: DragEvent) => onTrackDragStart(e, item)'
-            >
+            <div v-for='(item, i) in tracks' :key='item.path' v-if='$1t.settings.value.quickTag.thinTracks'>
                 <q-intersection style='height: 40px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
-                    <QuickTagTileThin :track='item' :odd='i % 2 == 1'></QuickTagTileThin>
+                    <div
+                        class='qt-row-drag-host'
+                        draggable='true'
+                        @dragstart='(e: DragEvent) => onTrackDragStart(e, item)'
+                    >
+                        <QuickTagTileThin :track='item' :odd='i % 2 == 1'></QuickTagTileThin>
+                    </div>
                     <QuickTagContextMenu
                         @manual-tag="onManualTag(item.path)"
                         :path="item.path"
@@ -872,6 +876,22 @@ watch($1t.quickTag.value.track, () => {
 
 .qt-card-grid-item {
     height: 280px;
+}
+
+/* Drag hosts. The global `* { user-select: none }` rule in app.scss
+   overrides HTML5 `draggable` on WebKit/wry — the drag never starts.
+   `-webkit-user-drag: element` re-enables it; `user-select: auto`
+   stops the global rule from leaking back in via specificity.
+   Without these two, drag from the track list to a DJ deck silently
+   does nothing on macOS. */
+.qt-card-drag-host,
+.qt-row-drag-host {
+    display: block;
+    width: 100%;
+    height: 100%;
+    -webkit-user-drag: element;
+    user-select: auto;
+    -webkit-user-select: auto;
 }
 
 /* V4 — Compact toolbar (search + stats + view toggle on one row) */
